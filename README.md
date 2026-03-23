@@ -41,3 +41,5 @@ Bu proje, sanayi işletmelerinin dijital dönüşümüne katkı sağlamak ve yaz
 
 ## 📄 Lisans
 Bu proje **MIT Lisansı** altında lisanslanmıştır. Daha fazla bilgi için `LICENSE` dosyasına göz atabilirsiniz.
+
+Bu projenin analiz raporu ve diyagram kurguları, GitHub README dosyasındaki teknik veriler temel alınarak yapılandırılmış ve rapora taşınmıştır.
