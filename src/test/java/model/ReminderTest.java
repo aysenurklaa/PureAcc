@@ -13,7 +13,7 @@ public class ReminderTest {
         Date scheduleDate = new Date();
         Reminder reminder = new Reminder("SMS", scheduleDate);
 
-        // Bilgileri doğrulayalım
+        // Bilgileri doğrular
         assertEquals("SMS", reminder.getChannel()); // Kanal doğru mu?
         assertEquals(scheduleDate, reminder.getScheduledAt()); // Planlanan tarih doğru mu?
     }
