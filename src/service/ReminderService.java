@@ -5,9 +5,9 @@ import model.InvoiceStatus;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * OdemeHatirlatmaService — Vadesi yaklaşan ve geçen ödemeleri tespit eder.
- */
+
+ // OdemeHatirlatmaService — Vadesi yaklaşan ve geçen ödemeleri tespit eder.
+ 
 public class ReminderService {
     
     // Vadesi geçen veya ödenmemiş faturaları filtrele
