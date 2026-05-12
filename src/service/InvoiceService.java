@@ -22,4 +22,12 @@ public class InvoiceService {
         invoice.setStatus(InvoiceStatus.IPTAL);
         System.out.println("Fatura iptal edildi.");
     }
+    public void cancelInvoice(Invoice invoice) {
+    if (invoice.getStatus() == InvoiceStatus.ODENDI) {
+        System.out.println("Hata: Ödenmiş fatura iptal edilemez.");
+        return;
+    }
+    invoice.setStatus(InvoiceStatus.IPTAL);
+    System.out.println("Fatura iptal edildi.");
+}
 }
