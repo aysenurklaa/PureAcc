@@ -1078,6 +1078,14 @@ public class DashboardUI extends JFrame {
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         list.setOpaque(false);
 
+        JLabel emptyLbl = new JLabel("Bekleyen hatırlatıcı yok. 🎉", SwingConstants.CENTER);
+        emptyLbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        emptyLbl.setForeground(MUTED);
+        emptyLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        emptyLbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        emptyLbl.setVisible(false);
+        list.add(emptyLbl);
+
         Object[][] remData = {
             {"Demir Çelik San. Ltd.", "INV-002 · Vade: 2026-05-10 · Hammadde tedariki",  "₺8.900",  "gecikti"},
             {"Akar Tedarik Tic.",     "INV-005 · Vade: 2026-04-20 · Montaj işçiliği",    "₺6.750",  "gecikti"},
@@ -1085,9 +1093,26 @@ public class DashboardUI extends JFrame {
             {"Yıldız Makine A.Ş.",   "INV-004 · Vade: 2026-05-31 · Yedek parça satışı", "₺22.000", "beklemede"},
         };
 
+        int[] visibleCount = {remData.length};
+
         for (Object[] r : remData) {
-            list.add(reminderRow((String)r[0], (String)r[1], (String)r[2], (String)r[3]));
-            list.add(Box.createVerticalStrut(8));
+            JPanel wrapper = new JPanel(new BorderLayout());
+            wrapper.setOpaque(false);
+            wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+            wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
+            wrapper.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+
+            Runnable onPaid = () -> {
+                wrapper.setVisible(false);
+                wrapper.setMaximumSize(new Dimension(0, 0));
+                visibleCount[0]--;
+                if (visibleCount[0] == 0) emptyLbl.setVisible(true);
+                list.revalidate();
+                list.repaint();
+            };
+
+            wrapper.add(reminderRow((String)r[0], (String)r[1], (String)r[2], (String)r[3], onPaid));
+            list.add(wrapper);
         }
 
         JScrollPane sp = new JScrollPane(list);
@@ -1099,11 +1124,10 @@ public class DashboardUI extends JFrame {
         return p;
     }
 
-    private JPanel reminderRow(String name, String detail, String amount, String type) {
+    private JPanel reminderRow(String name, String detail, String amount, String type, Runnable onPaid) {
         Color accent = "gecikti".equals(type) ? RED : "vadesi".equals(type) ? ORANGE : new Color(41, 128, 185);
         JPanel row = new JPanel(new BorderLayout(12, 0));
         row.setBackground(CARD);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
         row.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 4, 0, 0, accent),
             BorderFactory.createCompoundBorder(
@@ -1130,10 +1154,9 @@ public class DashboardUI extends JFrame {
         JButton email = outlineButton("E-posta");
         JButton paid  = pinkButton("Ödendi");
         paid.setFont(new Font("Arial", Font.BOLD, 11));
-        String n2 = name;
-        sms.addActionListener(e   -> JOptionPane.showMessageDialog(this, n2 + " — SMS gönderildi.", "SMS", JOptionPane.INFORMATION_MESSAGE));
-        email.addActionListener(e -> JOptionPane.showMessageDialog(this, n2 + " — E-posta gönderildi.", "E-posta", JOptionPane.INFORMATION_MESSAGE));
-        paid.addActionListener(e  -> JOptionPane.showMessageDialog(this, n2 + " — Ödendi olarak işaretlendi.", "Ödendi", JOptionPane.INFORMATION_MESSAGE));
+        sms.addActionListener(e   -> JOptionPane.showMessageDialog(this, name + " — SMS gönderildi.", "SMS", JOptionPane.INFORMATION_MESSAGE));
+        email.addActionListener(e -> JOptionPane.showMessageDialog(this, name + " — E-posta gönderildi.", "E-posta", JOptionPane.INFORMATION_MESSAGE));
+        paid.addActionListener(e  -> onPaid.run());
         btns.add(sms); btns.add(email); btns.add(paid);
 
         JPanel right = new JPanel(new BorderLayout(8, 0));
@@ -1206,10 +1229,25 @@ public class DashboardUI extends JFrame {
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         list.setOpaque(false);
 
+        JLabel emptyLbl2 = new JLabel("Gecikmiş ödeme yok. 🎉", SwingConstants.CENTER);
+        emptyLbl2.setFont(new Font("Arial", Font.BOLD, 13));
+        emptyLbl2.setForeground(GREEN);
+        emptyLbl2.setAlignmentX(Component.LEFT_ALIGNMENT);
+        emptyLbl2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        emptyLbl2.setVisible(false);
+        list.add(emptyLbl2);
+
+        int[] visibleCount2 = {data.length};
+
         for (Object[] r : data) {
+            JPanel wrapper = new JPanel(new BorderLayout());
+            wrapper.setOpaque(false);
+            wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+            wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 73));
+            wrapper.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+
             JPanel row = new JPanel(new BorderLayout(12, 0));
             row.setBackground(new Color(255, 248, 247));
-            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
             row.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(245, 198, 192), 1, true),
                 BorderFactory.createEmptyBorder(10, 14, 10, 14)));
@@ -1239,7 +1277,18 @@ public class DashboardUI extends JFrame {
             JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
             btns.setOpaque(false);
             JButton remind = outlineButton("Hatırlat");
-            JButton paid = pinkButton("Ödendi");
+            JButton paid   = pinkButton("Ödendi");
+            String custName = (String) r[1];
+            remind.addActionListener(e -> JOptionPane.showMessageDialog(this,
+                custName + " için hatırlatıcı gönderildi.", "Hatırlatıcı", JOptionPane.INFORMATION_MESSAGE));
+            paid.addActionListener(e -> {
+                wrapper.setVisible(false);
+                wrapper.setMaximumSize(new Dimension(0, 0));
+                visibleCount2[0]--;
+                if (visibleCount2[0] == 0) emptyLbl2.setVisible(true);
+                list.revalidate();
+                list.repaint();
+            });
             btns.add(remind); btns.add(paid);
 
             right.add(amtDate, BorderLayout.CENTER);
@@ -1247,8 +1296,8 @@ public class DashboardUI extends JFrame {
 
             row.add(info, BorderLayout.CENTER);
             row.add(right, BorderLayout.EAST);
-            list.add(row);
-            list.add(Box.createVerticalStrut(8));
+            wrapper.add(row, BorderLayout.CENTER);
+            list.add(wrapper);
         }
 
         body.add(list, BorderLayout.NORTH);
