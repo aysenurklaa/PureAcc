@@ -12,7 +12,7 @@ public class SituationTest {
     private SituationService createService() {
         TransactionService transactionService = new TransactionService();
         CustomerService customerService       = new CustomerService();
-        InvoiceService invoiceService         = new InvoiceService(customerService, transactionService);
+        InvoiceService invoiceService         = new InvoiceService();
         return new SituationService(transactionService, customerService, invoiceService);
     }
 
