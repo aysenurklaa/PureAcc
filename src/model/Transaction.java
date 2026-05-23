@@ -19,6 +19,14 @@ public class Transaction {
 
     public Transaction() {}
 
+    // Kısa constructor — sadece id, type, amount (testlerde kullanım kolaylığı için)
+    public Transaction(String id, String type, double amount) {
+        this.id = id;
+        this.type = type;
+        this.amount = amount;
+        this.date = new Date();
+    }
+
     public Transaction(String id, String type, double amount, Date date,
                        String description, String documentPath,
                        Company company, Invoice invoice) {
