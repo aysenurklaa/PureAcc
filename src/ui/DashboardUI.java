@@ -1,837 +1,1421 @@
 package ui;
 
 import javax.swing.*;
-import javax.swing.table.*;
 import javax.swing.border.*;
+import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
-import service.InvoiceService;
-import service.ReminderService;
-import model.Invoice;
-import model.InvoiceStatus;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Date;
+import java.text.NumberFormat;
+import java.util.Locale;
 
-/**
- * PureAcc - Ana Dashboard Arayüzü
- * Tüm modülleri (Fatura, Müşteri, Hatırlatma, Raporlar) tek pencerede yönetir.
- * CardLayout ile sekmeler arası geçiş sağlanır.
- */
 public class DashboardUI extends JFrame {
 
-    // ── Renkler (Rapordaki pembe tema) ──────────────────────────────────────
-    private static final Color PINK_MAIN   = new Color(219, 112, 147); // Koyu pembe — butonlar
-    private static final Color PINK_LIGHT  = new Color(255, 228, 235); // Açık pembe — arka plan
-    private static final Color PINK_SOFT   = new Color(255, 182, 193); // Orta pembe — menü
-    private static final Color WHITE       = Color.WHITE;
-    private static final Color TEXT_DARK   = new Color(50, 50, 60);
-    private static final Color TEXT_GRAY   = new Color(120, 120, 130);
-    private static final Color GREEN_OK    = new Color(39, 174, 96);
-    private static final Color ORANGE_WAIT = new Color(230, 126, 34);
-    private static final Color RED_LATE    = new Color(192, 57, 43);
+    // ── Renkler (HTML --pink:#C8607A temasından) ─────────────────────────────
+    private static final Color PINK       = new Color(200,  96, 122);
+    private static final Color PINK_H     = new Color(168,  64,  96);
+    private static final Color PINK_L     = new Color(248, 238, 241);
+    private static final Color BG         = new Color(253, 252, 249);
+    private static final Color CARD       = Color.WHITE;
+    private static final Color BORDER_COL = new Color(234, 230, 223);
+    private static final Color TEXT       = new Color( 42,  42,  42);
+    private static final Color MUTED      = new Color(154, 144, 128);
+    private static final Color GREEN      = new Color( 39, 174,  96);
+    private static final Color ORANGE     = new Color(230, 126,  34);
+    private static final Color RED        = new Color(192,  57,  43);
+    private static final Color HEADER_BG  = new Color(245, 242, 236);
 
-    // ── Servisler ────────────────────────────────────────────────────────────
-    private final InvoiceService  invoiceService  = new InvoiceService();
-    private final ReminderService reminderService = new ReminderService();
+    // ── Demo giriş bilgileri ──────────────────────────────────────────────────
+    private static final String DEMO_VKN  = "1234567890";
+    private static final String DEMO_PASS = "pureAcc2026";
 
-    // ── Ekran yönetimi ───────────────────────────────────────────────────────
-    private JPanel     contentPanel;
+    // ── Veri ─────────────────────────────────────────────────────────────────
+    private static final Object[][] CUSTOMERS = {
+        {"C001","Yıldız Makine A.Ş.",  "Müşteri",   "1112223334","info@yildizmakine.com",  "0212 555 10 10","₺24.500"},
+        {"C002","Demir Çelik San. Ltd.","Müşteri",   "2223334445","muhasebe@demircelik.com","0312 444 20 20","₺8.900"},
+        {"C003","Akar Tedarik Tic.",    "Tedarikçi", "3334445556","akar@akartedarik.com",   "0232 333 30 30","₺12.000 (Borç)"},
+        {"C004","Güneş Enerji Yat.",    "Müşteri",   "4445556667","gunes@gunesenerji.com",  "0262 222 40 40","₺31.750"},
+        {"C005","Polat Endüstri Ltd.",  "Tedarikçi", "5556667778","polat@polatend.com",      "0224 111 50 50","₺5.400 (Borç)"},
+    };
+
+    private static final Object[][] INVOICES = {
+        {"INV-001","Yıldız Makine A.Ş.",  "2026-04-01","2026-04-30","₺18.500","Ödendi"},
+        {"INV-002","Demir Çelik San. Ltd.","2026-04-10","2026-05-10","₺8.900", "Gecikti"},
+        {"INV-003","Güneş Enerji Yat.",   "2026-04-15","2026-05-15","₺12.400","Vadesi Yaklaştı"},
+        {"INV-004","Yıldız Makine A.Ş.",  "2026-05-01","2026-05-31","₺22.000","Beklemede"},
+        {"INV-005","Akar Tedarik Tic.",   "2026-03-20","2026-04-20","₺6.750", "Gecikti"},
+        {"INV-006","Polat Endüstri Ltd.", "2026-05-05","2026-06-05","₺9.200", "Taslak"},
+        {"INV-007","Güneş Enerji Yat.",   "2026-05-10","2026-06-10","₺14.100","Gönderildi"},
+    };
+
+    private static final Object[][] TRANSACTIONS = {
+        {"TX001","2026-04-05","GELİR","Satış Geliri",    "₺18.500"},
+        {"TX002","2026-04-12","GİDER","İşçilik",         "₺5.200"},
+        {"TX003","2026-04-18","GELİR","Hizmet Bedeli",   "₺12.400"},
+        {"TX004","2026-04-25","GİDER","Hammadde",        "₺8.700"},
+        {"TX005","2026-05-02","GELİR","Satış Geliri",    "₺22.000"},
+        {"TX006","2026-05-08","GİDER","Kira & Faturalar","₺3.500"},
+        {"TX007","2026-05-12","GELİR","Danışmanlık",     "₺9.200"},
+        {"TX008","2026-05-14","GİDER","Lojistik",        "₺4.100"},
+    };
+
+    // ── Navigasyon ────────────────────────────────────────────────────────────
     private CardLayout cardLayout;
-    private JButton    activeMenuBtn; // Seçili menü butonu takibi
+    private JPanel     contentPanel;
+    private JButton    activeSideBtn;
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  CONSTRUCTOR
-    // ════════════════════════════════════════════════════════════════════════
+    // ── Fatura formu state ───────────────────────────────────────────────────
+    private JComboBox<String> custCombo;
+    private JTextField fiTax, fiEmail, fiPhone, fiDate, fiDue;
+    private JComboBox<String> vatCombo;
+    private JPanel lineContainer;
+    private JLabel lblSubtotal, lblVat, lblGrandTotal;
+    private final java.util.List<double[]> lineData = new java.util.ArrayList<>();
+
+    // ══════════════════════════════════════════════════════════════════════════
     public DashboardUI() {
         setTitle("PureAcc — Muhasebe ve Finans Yönetim Sistemi");
-        setSize(1100, 680);
-        setMinimumSize(new Dimension(900, 580));
+        setSize(1150, 700);
+        setMinimumSize(new Dimension(950, 600));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        getContentPane().setBackground(WHITE);
 
-        JPanel mainLayout = new JPanel(new BorderLayout());
-        mainLayout.add(buildSideMenu(),    BorderLayout.WEST);
-        mainLayout.add(buildContentArea(), BorderLayout.CENTER);
-        add(mainLayout);
+        JPanel root = new JPanel(new BorderLayout());
+        root.add(buildNavbar(),  BorderLayout.NORTH);
+        root.add(buildSidebar(), BorderLayout.WEST);
+        root.add(buildContent(), BorderLayout.CENTER);
+        setContentPane(root);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  GİRİŞ EKRANI
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Uygulama başladığında gösterilen giriş penceresi.
-     * Kullanıcı adı ve şifre doğrulaması simüle edilir.
-     */
+    // ══════════════════════════════════════════════════════════════════════════
+    //  LOGIN
+    // ══════════════════════════════════════════════════════════════════════════
     public void showLoginScreen() {
-        JDialog loginDialog = new JDialog();
-        loginDialog.setTitle("PureAcc — Sisteme Giriş");
-        loginDialog.setSize(420, 420);
-        loginDialog.setModal(true);
-        loginDialog.setLocationRelativeTo(null);
-        loginDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        loginDialog.setResizable(false);
+        JDialog dlg = new JDialog();
+        dlg.setTitle("PureAcc — Sisteme Giriş");
+        dlg.setSize(400, 440);
+        dlg.setModal(true);
+        dlg.setLocationRelativeTo(null);
+        dlg.setResizable(false);
+        dlg.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        // Arka plan paneli
-        JPanel bg = new JPanel(null);
-        bg.setBackground(PINK_LIGHT);
+        // Ortalanmış kart
+        JPanel bg = new JPanel(new GridBagLayout());
+        bg.setBackground(new Color(244, 241, 235));
 
-        // Başlık
+        JPanel card = new JPanel(null);
+        card.setBackground(CARD);
+        card.setPreferredSize(new Dimension(340, 380));
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+
         JLabel logo = new JLabel("PureAcc", SwingConstants.CENTER);
-        logo.setFont(new Font("Georgia", Font.BOLD, 32));
-        logo.setForeground(PINK_MAIN);
-        logo.setBounds(60, 30, 300, 45);
+        logo.setFont(new Font("Georgia", Font.BOLD, 30));
+        logo.setForeground(PINK);
+        logo.setBounds(20, 28, 300, 40);
 
-        JLabel subtitle = new JLabel("Muhasebe ve Finans Yönetim Sistemi", SwingConstants.CENTER);
-        subtitle.setFont(new Font("Arial", Font.PLAIN, 12));
-        subtitle.setForeground(TEXT_GRAY);
-        subtitle.setBounds(60, 75, 300, 20);
+        JLabel sub = new JLabel("<html><center>Sanayi İşletmeleri İçin<br>Muhasebe &amp; Finans Yönetim Sistemi</center></html>", SwingConstants.CENTER);
+        sub.setFont(new Font("Arial", Font.PLAIN, 11));
+        sub.setForeground(MUTED);
+        sub.setBounds(20, 72, 300, 36);
 
-        // Ayraç çizgi
-        JSeparator sep = new JSeparator();
-        sep.setBounds(60, 105, 300, 2);
-        sep.setForeground(PINK_SOFT);
+        JLabel lVkn = new JLabel("Vergi Numarası");
+        lVkn.setFont(new Font("Arial", Font.BOLD, 11));
+        lVkn.setForeground(MUTED);
+        lVkn.setBounds(30, 118, 280, 16);
 
-        // Vergi Numarası
-        JLabel lblUser = new JLabel("Vergi Numarası");
-        lblUser.setFont(new Font("Arial", Font.BOLD, 12));
-        lblUser.setForeground(TEXT_DARK);
-        lblUser.setBounds(60, 125, 300, 20);
+        JTextField tfVkn = styledField("1234567890");
+        tfVkn.setBounds(30, 136, 280, 36);
 
-        JTextField txtUser = createStyledTextField("Vergi numaranızı girin");
-        txtUser.setBounds(60, 148, 300, 38);
+        JLabel lPass = new JLabel("Şifre");
+        lPass.setFont(new Font("Arial", Font.BOLD, 11));
+        lPass.setForeground(MUTED);
+        lPass.setBounds(30, 182, 280, 16);
 
-        // Şifre
-        JLabel lblPass = new JLabel("Şifre");
-        lblPass.setFont(new Font("Arial", Font.BOLD, 12));
-        lblPass.setForeground(TEXT_DARK);
-        lblPass.setBounds(60, 200, 300, 20);
-
-        JPasswordField passField = new JPasswordField();
-        passField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(PINK_SOFT, 1, true),
+        JPasswordField pfPass = new JPasswordField();
+        pfPass.setFont(new Font("Arial", Font.PLAIN, 13));
+        pfPass.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
             BorderFactory.createEmptyBorder(5, 10, 5, 10)));
-        passField.setFont(new Font("Arial", Font.PLAIN, 13));
-        passField.setBounds(60, 223, 300, 38);
+        pfPass.setBounds(30, 200, 280, 36);
 
-        // Hata mesajı (başta gizli)
-        JLabel lblError = new JLabel("Hatalı giriş. Lütfen tekrar deneyin.");
-        lblError.setFont(new Font("Arial", Font.PLAIN, 11));
-        lblError.setForeground(RED_LATE);
-        lblError.setBounds(60, 268, 300, 18);
-        lblError.setVisible(false);
+        JLabel lErr = new JLabel("Vergi numarası veya şifre hatalı.");
+        lErr.setFont(new Font("Arial", Font.PLAIN, 11));
+        lErr.setForeground(RED);
+        lErr.setBounds(30, 244, 280, 16);
+        lErr.setVisible(false);
 
-        // Giriş Butonu
-        JButton loginBtn = createPinkButton("Sisteme Giriş Yap");
-        loginBtn.setBounds(60, 295, 300, 42);
+        JButton btnLogin = pinkButton("Giriş Yap");
+        btnLogin.setBounds(30, 268, 280, 40);
 
-        // Demo bilgisi
-        JLabel demoInfo = new JLabel("Demo: Herhangi bir bilgi ile giriş yapabilirsiniz.", SwingConstants.CENTER);
-        demoInfo.setFont(new Font("Arial", Font.ITALIC, 10));
-        demoInfo.setForeground(TEXT_GRAY);
-        demoInfo.setBounds(60, 348, 300, 16);
+        JLabel demo = new JLabel("Demo  ·  VKN: 1234567890  |  Şifre: pureAcc2026", SwingConstants.CENTER);
+        demo.setFont(new Font("Arial", Font.PLAIN, 10));
+        demo.setForeground(new Color(200, 190, 180));
+        demo.setBounds(20, 320, 300, 16);
 
-        // Giriş aksiyonu
-        ActionListener loginAction = e -> {
-            String user = txtUser.getText().trim();
-            String pass = new String(passField.getPassword()).trim();
-            if (user.isEmpty() || pass.isEmpty()) {
-                // Boş alan uyarısı
-                lblError.setText("Lütfen tüm alanları doldurun.");
-                lblError.setVisible(true);
-            } else {
-                // Başarılı giriş simülasyonu
-                loginDialog.dispose();
+        ActionListener loginAct = e -> {
+            String v = tfVkn.getText().trim();
+            String p = new String(pfPass.getPassword()).trim();
+            if (DEMO_VKN.equals(v) && DEMO_PASS.equals(p)) {
+                dlg.dispose();
                 DashboardUI.this.setVisible(true);
+            } else {
+                lErr.setVisible(true);
             }
         };
-        loginBtn.addActionListener(loginAction);
-        passField.addActionListener(loginAction); // Enter ile de giriş
+        btnLogin.addActionListener(loginAct);
+        pfPass.addActionListener(loginAct);
 
-        bg.add(logo); bg.add(subtitle); bg.add(sep);
-        bg.add(lblUser); bg.add(txtUser);
-        bg.add(lblPass); bg.add(passField);
-        bg.add(lblError); bg.add(loginBtn); bg.add(demoInfo);
-
-        loginDialog.add(bg);
-        loginDialog.setVisible(true);
+        card.add(logo); card.add(sub);
+        card.add(lVkn); card.add(tfVkn);
+        card.add(lPass); card.add(pfPass);
+        card.add(lErr); card.add(btnLogin); card.add(demo);
+        bg.add(card);
+        dlg.add(bg);
+        dlg.setVisible(true);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  SOL MENÜ
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Sol taraftaki navigasyon menüsünü oluşturur.
-     * Her butona basıldığında CardLayout ile ilgili sayfa gösterilir.
-     */
-    private JPanel buildSideMenu() {
+    // ══════════════════════════════════════════════════════════════════════════
+    //  NAVBAR
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildNavbar() {
+        JPanel nav = new JPanel(new BorderLayout());
+        nav.setBackground(CARD);
+        nav.setPreferredSize(new Dimension(0, 54));
+        nav.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COL));
+
+        JLabel logo = new JLabel("  PureAcc");
+        logo.setFont(new Font("Georgia", Font.BOLD, 20));
+        logo.setForeground(PINK);
+        logo.setPreferredSize(new Dimension(160, 54));
+        logo.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER_COL));
+        nav.add(logo, BorderLayout.WEST);
+
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 14));
+        right.setOpaque(false);
+        JPanel avatar = new JPanel(new GridBagLayout());
+        avatar.setBackground(PINK);
+        avatar.setPreferredSize(new Dimension(30, 30));
+        JLabel av = new JLabel("AK");
+        av.setFont(new Font("Arial", Font.BOLD, 10));
+        av.setForeground(Color.WHITE);
+        avatar.add(av);
+        JButton logout = new JButton("Çıkış");
+        logout.setFont(new Font("Arial", Font.PLAIN, 11));
+        logout.setForeground(MUTED);
+        logout.setBackground(CARD);
+        logout.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1, true));
+        logout.setFocusPainted(false);
+        logout.addActionListener(e -> System.exit(0));
+        right.add(avatar);
+        right.add(logout);
+        nav.add(right, BorderLayout.EAST);
+
+        return nav;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  SIDEBAR
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildSidebar() {
         JPanel side = new JPanel();
-        side.setPreferredSize(new Dimension(220, 680));
-        side.setBackground(PINK_SOFT);
         side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
-        side.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        side.setBackground(CARD);
+        side.setPreferredSize(new Dimension(224, 0));
+        side.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER_COL),
+            BorderFactory.createEmptyBorder(14, 9, 14, 9)));
 
-        // Logo alanı
-        JPanel logoArea = new JPanel(new BorderLayout());
-        logoArea.setBackground(PINK_MAIN);
-        logoArea.setMaximumSize(new Dimension(220, 80));
-        logoArea.setMinimumSize(new Dimension(220, 80));
-        logoArea.setPreferredSize(new Dimension(220, 80));
-        JLabel logoLbl = new JLabel("PureAcc", SwingConstants.CENTER);
-        logoLbl.setFont(new Font("Georgia", Font.BOLD, 26));
-        logoLbl.setForeground(WHITE);
-        logoArea.add(logoLbl, BorderLayout.CENTER);
-        side.add(logoArea);
-
-        // Alt başlık
-        JLabel sysLabel = new JLabel("  Muhasebe Sistemi", SwingConstants.LEFT);
-        sysLabel.setFont(new Font("Arial", Font.PLAIN, 10));
-        sysLabel.setForeground(WHITE);
-        sysLabel.setOpaque(true);
-        sysLabel.setBackground(PINK_MAIN);
-        sysLabel.setMaximumSize(new Dimension(220, 24));
-        sysLabel.setPreferredSize(new Dimension(220, 24));
-        side.add(sysLabel);
-
-        side.add(Box.createVerticalStrut(16));
-
-        // Menü butonları
-        String[][] menuItems = {
-            {"Ana Sayfa",         "home"},
-            {"Fatura Oluştur",    "invoice"},
-            {"Müşteri Listesi",   "customers"},
-            {"Hatırlatıcılar",    "reminders"},
-            {"Finansal Raporlar", "reports"}
-        };
-
-        for (String[] item : menuItems) {
-            JButton btn = buildMenuButton(item[0], item[1]);
-            side.add(btn);
-            side.add(Box.createVerticalStrut(4));
-            // İlk butonu aktif yap
-            if ("home".equals(item[1])) {
-                setActiveMenu(btn);
-                activeMenuBtn = btn;
-            }
-        }
-
+        side.add(sideGroup("Fatura Yönetimi"));
+        side.add(sideBtn("➕  Fatura Oluştur",    "create-invoice", false));
+        side.add(sideBtn("📋  Fatura Listesi",     "invoices",       false));
+        side.add(sideBtn("⏰  Vadesi Gelenler",    "overdue",        false));
+        side.add(Box.createVerticalStrut(10));
+        side.add(sideGroup("Diğer Modüller"));
+        JButton dash = sideBtn("📊  Dashboard",        "dashboard",      true);
+        side.add(dash);
+        activeSideBtn = dash;
+        side.add(sideBtn("👤  Müşteriler",         "customers",      false));
+        side.add(sideBtn("🔔  Hatırlatmalar",      "reminders",      false));
+        side.add(sideBtn("📈  Raporlama",          "reports",        false));
         side.add(Box.createVerticalGlue());
-
-        // Alt kullanıcı bilgisi
-        JPanel userArea = new JPanel(new BorderLayout());
-        userArea.setBackground(PINK_MAIN);
-        userArea.setMaximumSize(new Dimension(220, 55));
-        userArea.setPreferredSize(new Dimension(220, 55));
-        userArea.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        JLabel userName = new JLabel("Safiye Ural");
-        userName.setFont(new Font("Arial", Font.BOLD, 13));
-        userName.setForeground(WHITE);
-        JLabel userRole = new JLabel("Muhasebe Uzmanı");
-        userRole.setFont(new Font("Arial", Font.PLAIN, 10));
-        userRole.setForeground(new Color(255, 220, 230));
-        JPanel userInfo = new JPanel(new GridLayout(2, 1));
-        userInfo.setOpaque(false);
-        userInfo.add(userName);
-        userInfo.add(userRole);
-        userArea.add(userInfo, BorderLayout.CENTER);
-        side.add(userArea);
 
         return side;
     }
 
-    // Menü butonu stilini uygular ve CardLayout geçişini bağlar. 
-    private JButton buildMenuButton(String text, String cardName) {
-        JButton btn = new JButton("  " + text);
-        btn.setFont(new Font("Arial", Font.PLAIN, 14));
-        btn.setForeground(TEXT_DARK);
-        btn.setBackground(WHITE);
-        btn.setOpaque(true);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
+    private JLabel sideGroup(String text) {
+        JLabel lbl = new JLabel(text.toUpperCase());
+        lbl.setFont(new Font("Arial", Font.BOLD, 10));
+        lbl.setForeground(new Color(192, 184, 172));
+        lbl.setBorder(BorderFactory.createEmptyBorder(4, 10, 6, 0));
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
+        return lbl;
+    }
+
+    private JButton sideBtn(String text, String card, boolean active) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Arial", Font.PLAIN, 13));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
-        btn.setMaximumSize(new Dimension(220, 42));
-        btn.setPreferredSize(new Dimension(220, 42));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setOpaque(true);
+        applySideBtnStyle(btn, active);
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                if (btn != activeMenuBtn) btn.setBackground(PINK_LIGHT);
+                if (btn != activeSideBtn) applySideBtnStyle(btn, true);
             }
             public void mouseExited(MouseEvent e) {
-                if (btn != activeMenuBtn) btn.setBackground(WHITE);
+                if (btn != activeSideBtn) applySideBtnStyle(btn, false);
             }
         });
 
         btn.addActionListener(e -> {
-            cardLayout.show(contentPanel, cardName);
-            if (activeMenuBtn != null) {
-                activeMenuBtn.setBackground(WHITE);
-                activeMenuBtn.setForeground(TEXT_DARK);
-                activeMenuBtn.setFont(new Font("Arial", Font.PLAIN, 14));
-            }
-            setActiveMenu(btn);
-            activeMenuBtn = btn;
+            if (activeSideBtn != null) applySideBtnStyle(activeSideBtn, false);
+            activeSideBtn = btn;
+            applySideBtnStyle(btn, true);
+            cardLayout.show(contentPanel, card);
         });
+
         return btn;
     }
 
-    // Seçili menü butonunun görünümünü vurgular. 
-    private void setActiveMenu(JButton btn) {
-        btn.setBackground(PINK_MAIN);
-        btn.setForeground(WHITE);
-        btn.setFont(new Font("Arial", Font.BOLD, 14));
+    private void applySideBtnStyle(JButton btn, boolean active) {
+        if (active) {
+            btn.setBackground(PINK_L);
+            btn.setForeground(PINK);
+            btn.setFont(new Font("Arial", Font.BOLD, 13));
+        } else {
+            btn.setBackground(CARD);
+            btn.setForeground(new Color(100, 100, 100));
+            btn.setFont(new Font("Arial", Font.PLAIN, 13));
+        }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  SAĞ İÇERİK ALANI
-    // ════════════════════════════════════════════════════════════════════════
-    // Tüm sayfaları CardLayout içine ekler. 
-    private JPanel buildContentArea() {
-        cardLayout    = new CardLayout();
-        contentPanel  = new JPanel(cardLayout);
-        contentPanel.setBackground(WHITE);
+    // ══════════════════════════════════════════════════════════════════════════
+    //  CONTENT AREA
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildContent() {
+        cardLayout   = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
+        contentPanel.setBackground(BG);
 
-        contentPanel.add(buildHomePage(),     "home");
-        contentPanel.add(buildInvoicePage(),  "invoice");
-        contentPanel.add(buildCustomerPage(), "customers");
-        contentPanel.add(buildReminderPage(), "reminders");
-        contentPanel.add(buildReportPage(),   "reports");
+        contentPanel.add(buildDashboard(),      "dashboard");
+        contentPanel.add(buildCreateInvoice(),  "create-invoice");
+        contentPanel.add(buildInvoiceList(),    "invoices");
+        contentPanel.add(buildCustomers(),      "customers");
+        contentPanel.add(buildReminders(),      "reminders");
+        contentPanel.add(buildReports(),        "reports");
+        contentPanel.add(buildOverdue(),        "overdue");
 
         return contentPanel;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  SAYFA 1 — ANA SAYFA
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Genel finansal özet kartlarını gösterir:
-     * Toplam gelir, toplam gider ve net bakiye.
-     */
-    private JPanel buildHomePage() {
-        JPanel page = new JPanel(new BorderLayout(0, 0));
-        page.setBackground(PINK_LIGHT);
+    // ══════════════════════════════════════════════════════════════════════════
+    //  DASHBOARD
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildDashboard() {
+        JPanel p = page();
 
-        // Üst başlık çubuğu
-        page.add(buildPageHeader("Ana Sayfa", "Finansal genel durumunuz"), BorderLayout.NORTH);
+        p.add(pageHeader("Dashboard", "Genel Mali Özet — Mayıs 2026"), BorderLayout.NORTH);
+
+        JPanel body = new JPanel(new BorderLayout(0, 16));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
 
         // Özet kartlar
-        JPanel cards = new JPanel(new GridLayout(1, 3, 16, 0));
+        JPanel cards = new JPanel(new GridLayout(1, 4, 13, 0));
         cards.setOpaque(false);
-        cards.setBorder(BorderFactory.createEmptyBorder(24, 24, 16, 24));
-        cards.add(buildSummaryCard("Toplam Gelir",  "₺ 84.500",  GREEN_OK,    "Bu ay +%12"));
-        cards.add(buildSummaryCard("Toplam Gider",  "₺ 31.200",  RED_LATE,    "Bu ay -%5"));
-        cards.add(buildSummaryCard("Net Bakiye",    "₺ 53.300",  PINK_MAIN,   "Güncellendi"));
-        page.add(cards, BorderLayout.CENTER);
+        cards.add(summaryCard("Toplam Gelir",     "₺61.100", GREEN,  "left"));
+        cards.add(summaryCard("Toplam Gider",     "₺21.500", RED,    "left"));
+        cards.add(summaryCard("Net Kar / Zarar",  "₺39.600", PINK,   "left"));
+        cards.add(summaryCard("Gecikmiş Fatura",  "2",       ORANGE, "left"));
+        body.add(cards, BorderLayout.NORTH);
 
-        // Alt bilgi
-        JLabel info = new JLabel("  Son güncelleme: Bugün  |  Aktif fatura: 4  |  Gecikmiş ödeme: 2", SwingConstants.LEFT);
-        info.setFont(new Font("Arial", Font.PLAIN, 11));
-        info.setForeground(TEXT_GRAY);
-        info.setBorder(BorderFactory.createEmptyBorder(0, 24, 16, 24));
-        page.add(info, BorderLayout.SOUTH);
+        // Son işlemler tablosu
+        JPanel tableWrap = cardPanel("Son İşlemler");
+        String[] txCols = {"Tarih", "Açıklama", "Tür", "Tutar"};
+        Object[][] txData = {
+            {"2026-05-14","Lojistik",         "GİDER","₺4.100"},
+            {"2026-05-12","Danışmanlık",       "GELİR","₺9.200"},
+            {"2026-05-08","Kira & Faturalar",  "GİDER","₺3.500"},
+            {"2026-05-02","Satış Geliri",      "GELİR","₺22.000"},
+            {"2026-04-25","Hammadde",          "GİDER","₺8.700"},
+        };
+        JTable tbl = styledTable(txData, txCols);
+        tbl.getColumnModel().getColumn(2).setCellRenderer(typeBadgeRenderer());
+        tbl.getColumnModel().getColumn(3).setCellRenderer(amountRenderer());
+        tableWrap.add(scrollOf(tbl));
+        body.add(tableWrap, BorderLayout.CENTER);
 
-        return page;
+        p.add(body, BorderLayout.CENTER);
+        return p;
     }
 
-    // Özet kart bileşeni oluşturur (gelir, gider, bakiye gibi). 
-    private JPanel buildSummaryCard(String title, String value, Color accentColor, String sub) {
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBackground(WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(230, 220, 225), 1, true),
-            BorderFactory.createEmptyBorder(20, 20, 20, 20)));
+    // ══════════════════════════════════════════════════════════════════════════
+    //  FATURA OLUŞTUR
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildCreateInvoice() {
+        JPanel p = page();
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
+        // Üst başlık + "Listeye Dön" butonu
+        JPanel hdrRow = new JPanel(new BorderLayout());
+        hdrRow.setBackground(CARD);
+        hdrRow.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COL),
+            BorderFactory.createEmptyBorder(14, 24, 10, 24)));
+        JPanel hdrTxt = new JPanel(new GridLayout(2, 1, 0, 2));
+        hdrTxt.setOpaque(false);
+        JLabel hT = new JLabel("Yeni Fatura Oluştur");
+        hT.setFont(new Font("Arial", Font.BOLD, 20));
+        hT.setForeground(new Color(26, 26, 26));
+        JLabel hS = new JLabel("Fatura bilgilerini doldurun — tutar ve KDV otomatik hesaplanır");
+        hS.setFont(new Font("Arial", Font.PLAIN, 12));
+        hS.setForeground(MUTED);
+        hdrTxt.add(hT); hdrTxt.add(hS);
+        JButton backBtn = outlineButton("← Fatura Listesine Dön");
+        backBtn.addActionListener(e -> cardLayout.show(contentPanel, "invoices"));
+        hdrRow.add(hdrTxt, BorderLayout.WEST);
+        hdrRow.add(backBtn, BorderLayout.EAST);
+        p.add(hdrRow, BorderLayout.NORTH);
 
-        // Üst renkli çizgi (vurgu)
-        JPanel accent = new JPanel();
-        accent.setBackground(accentColor);
-        accent.setPreferredSize(new Dimension(40, 4));
-        card.add(accent, gbc);
+        // Ana içerik: sol form + sağ panel
+        JPanel body = new JPanel(new BorderLayout(16, 0));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
 
-        gbc.gridy = 1; gbc.insets = new Insets(12, 0, 4, 0);
-        JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("Arial", Font.PLAIN, 12));
-        titleLbl.setForeground(TEXT_GRAY);
-        card.add(titleLbl, gbc);
+        // ── SOL SÜTUN ────────────────────────────────────────────────────────
+        JPanel left = new JPanel();
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.setOpaque(false);
 
-        gbc.gridy = 2; gbc.insets = new Insets(0, 0, 8, 0);
-        JLabel valueLbl = new JLabel(value);
-        valueLbl.setFont(new Font("Georgia", Font.BOLD, 26));
-        valueLbl.setForeground(accentColor);
-        card.add(valueLbl, gbc);
+        // 1. Müşteri Bilgileri
+        JPanel custSec = invSection("Müşteri Bilgileri");
+        JPanel custGrid = new JPanel(new GridLayout(2, 2, 12, 10));
+        custGrid.setOpaque(false);
+        custGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        gbc.gridy = 3; gbc.insets = new Insets(0, 0, 0, 0);
-        JLabel subLbl = new JLabel(sub);
-        subLbl.setFont(new Font("Arial", Font.PLAIN, 11));
-        subLbl.setForeground(TEXT_GRAY);
-        card.add(subLbl, gbc);
+        String[] custNames = {"— Müşteri seçin —",
+            "Yıldız Makine A.Ş.", "Demir Çelik San. Ltd.",
+            "Akar Tedarik Tic.", "Güneş Enerji Yat.", "Polat Endüstri Ltd."};
+        custCombo = new JComboBox<>(custNames);
+        custCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        custCombo.setBackground(CARD);
+        custCombo.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
+        fiTax   = readonlyField("Müşteri seçince dolar");
+        fiEmail = readonlyField("Müşteri seçince dolar");
+        fiPhone = readonlyField("Müşteri seçince dolar");
+        custCombo.addActionListener(e -> fillCustomerFields());
 
-        return card;
+        custGrid.add(invField("Müşteri Seç *", custCombo));
+        custGrid.add(invField("Vergi Numarası", fiTax));
+        custGrid.add(invField("E-Posta", fiEmail));
+        custGrid.add(invField("Telefon", fiPhone));
+        custSec.add(custGrid);
+        left.add(custSec);
+        left.add(Box.createVerticalStrut(12));
+
+        // 2. Fatura Detayları
+        JPanel detSec = invSection("Fatura Detayları");
+        JPanel detGrid = new JPanel(new GridLayout(1, 3, 12, 0));
+        detGrid.setOpaque(false);
+        detGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
+        fiDate = styledField("2026-05-23");
+        fiDue  = styledField("2026-06-23");
+        vatCombo = new JComboBox<>(new String[]{"KDV Yok (%0)", "%1 İndirimli", "%8 İndirimli", "%18 Standart", "%20"});
+        vatCombo.setSelectedIndex(3);
+        vatCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        vatCombo.setBackground(CARD);
+        vatCombo.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
+        vatCombo.addActionListener(e -> recalcTotals());
+        detGrid.add(invField("Fatura Tarihi *", fiDate));
+        detGrid.add(invField("Vade Tarihi *", fiDue));
+        detGrid.add(invField("KDV Oranı", vatCombo));
+        detSec.add(detGrid);
+
+        JPanel descWrap = new JPanel(new BorderLayout());
+        descWrap.setOpaque(false);
+        descWrap.setAlignmentX(Component.LEFT_ALIGNMENT);
+        descWrap.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+        JLabel descLbl = new JLabel("Açıklama / Not");
+        descLbl.setFont(new Font("Arial", Font.BOLD, 10));
+        descLbl.setForeground(MUTED);
+        descLbl.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+        JTextArea descTa = new JTextArea(2, 20);
+        descTa.setFont(new Font("Arial", Font.PLAIN, 13));
+        descTa.setLineWrap(true);
+        descTa.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+        descWrap.add(descLbl, BorderLayout.NORTH);
+        descWrap.add(new JScrollPane(descTa), BorderLayout.CENTER);
+        detSec.add(descWrap);
+        left.add(detSec);
+        left.add(Box.createVerticalStrut(12));
+
+        // 3. İş Kalemleri
+        JPanel itemSec = invSection("İş Kalemleri");
+
+        // Kalem tablosu başlığı
+        JPanel lineHeader = new JPanel(new GridBagLayout());
+        lineHeader.setOpaque(false);
+        lineHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lineHeader.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        GridBagConstraints lhg = new GridBagConstraints();
+        lhg.fill = GridBagConstraints.HORIZONTAL; lhg.gridy = 0;
+        lhg.weightx = 1.0; lhg.gridx = 0;
+        lineHeader.add(colHeader("Hizmet / Ürün", SwingConstants.LEFT), lhg);
+        lhg.weightx = 0; lhg.gridx = 1; lineHeader.add(colHeader("Miktar", SwingConstants.CENTER), lhg);
+        lhg.gridx = 2; lineHeader.add(colHeader("Birim Fiyat (₺)", SwingConstants.CENTER), lhg);
+        lhg.gridx = 3; lineHeader.add(colHeader("Toplam", SwingConstants.RIGHT), lhg);
+        lhg.gridx = 4; lineHeader.add(new JLabel(""), lhg);
+        itemSec.add(lineHeader);
+
+        // Kalem satırları konteyneri
+        lineContainer = new JPanel();
+        lineContainer.setLayout(new BoxLayout(lineContainer, BoxLayout.Y_AXIS));
+        lineContainer.setOpaque(false);
+        lineContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
+        itemSec.add(lineContainer);
+        addLineRow(); // Başlangıçta 1 boş satır
+
+        // + Kalem ekle butonu
+        JButton addLine = new JButton("+ Kalem ekle");
+        addLine.setFont(new Font("Arial", Font.BOLD, 12));
+        addLine.setForeground(PINK);
+        addLine.setBackground(new Color(0,0,0,0));
+        addLine.setBorderPainted(false);
+        addLine.setFocusPainted(false);
+        addLine.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        addLine.setAlignmentX(Component.LEFT_ALIGNMENT);
+        addLine.addActionListener(e -> { addLineRow(); lineContainer.revalidate(); });
+        itemSec.add(addLine);
+
+        // Toplamlar
+        JSeparator totSep = new JSeparator();
+        totSep.setForeground(BORDER_COL);
+        totSep.setAlignmentX(Component.LEFT_ALIGNMENT);
+        totSep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        itemSec.add(Box.createVerticalStrut(8));
+        itemSec.add(totSep);
+
+        lblSubtotal   = totRow("Ara toplam",  "₺0,00", false);
+        lblVat        = totRow("KDV (%18)",   "₺0,00", false);
+        lblGrandTotal = totRow("Genel Toplam","₺0,00", true);
+        itemSec.add(buildTotRow("Ara toplam",  lblSubtotal,  false));
+        itemSec.add(buildTotRow("KDV (%18)",   lblVat,       false));
+        itemSec.add(buildTotRow("Genel Toplam",lblGrandTotal,true));
+
+        // Aksiyon butonları
+        JPanel acts = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
+        acts.setOpaque(false);
+        acts.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton create = pinkButton("Faturayı Oluştur");
+        create.setPreferredSize(new Dimension(160, 38));
+        JButton preview = outlineButton("Ön İzleme");
+        preview.setPreferredSize(new Dimension(110, 38));
+        JButton cancel = new JButton("İptal");
+        cancel.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancel.setForeground(MUTED);
+        cancel.setBackground(new Color(0,0,0,0));
+        cancel.setBorderPainted(false);
+        cancel.setFocusPainted(false);
+        create.addActionListener(e -> JOptionPane.showMessageDialog(this,
+            "Fatura başarıyla oluşturuldu!", "Başarılı", JOptionPane.INFORMATION_MESSAGE));
+        cancel.addActionListener(e -> { lineData.clear(); lineContainer.removeAll();
+            addLineRow(); lineContainer.revalidate(); recalcTotals(); });
+        acts.add(create); acts.add(preview); acts.add(cancel);
+        itemSec.add(acts);
+        left.add(itemSec);
+
+        JScrollPane leftScroll = new JScrollPane(left);
+        leftScroll.setBorder(BorderFactory.createEmptyBorder());
+        leftScroll.getViewport().setOpaque(false);
+        leftScroll.setOpaque(false);
+        leftScroll.getVerticalScrollBar().setUnitIncrement(12);
+        body.add(leftScroll, BorderLayout.CENTER);
+
+        // ── SAĞ SÜTUN ────────────────────────────────────────────────────────
+        JPanel right = new JPanel();
+        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+        right.setOpaque(false);
+        right.setPreferredSize(new Dimension(240, 0));
+
+        // Fatura Durumu kartı
+        JPanel statusCard = new JPanel();
+        statusCard.setLayout(new BoxLayout(statusCard, BoxLayout.Y_AXIS));
+        statusCard.setBackground(CARD);
+        statusCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
+        statusCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+
+        JLabel scTitle = new JLabel("Fatura Durumu");
+        scTitle.setFont(new Font("Arial", Font.BOLD, 11));
+        scTitle.setForeground(MUTED);
+        scTitle.setBackground(HEADER_BG);
+        scTitle.setOpaque(true);
+        scTitle.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        scTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        scTitle.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        statusCard.add(scTitle);
+
+        JPanel scBody = new JPanel();
+        scBody.setLayout(new BoxLayout(scBody, BoxLayout.Y_AXIS));
+        scBody.setBackground(CARD);
+        scBody.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        JLabel badgeLbl = new JLabel("Taslak");
+        badgeLbl.setFont(new Font("Arial", Font.BOLD, 11));
+        badgeLbl.setForeground(new Color(85, 85, 85));
+        badgeLbl.setBackground(new Color(236, 236, 236));
+        badgeLbl.setOpaque(true);
+        badgeLbl.setBorder(BorderFactory.createEmptyBorder(3, 10, 3, 10));
+        scBody.add(scInfoRow("Durum", badgeLbl));
+        scBody.add(Box.createVerticalStrut(6));
+        scBody.add(scInfoRow2("Fatura No", "Otomatik atanır"));
+        statusCard.add(scBody);
+        right.add(statusCard);
+        right.add(Box.createVerticalStrut(12));
+
+        // Olay Akışı kartı
+        JPanel stepsCard = new JPanel();
+        stepsCard.setLayout(new BoxLayout(stepsCard, BoxLayout.Y_AXIS));
+        stepsCard.setBackground(CARD);
+        stepsCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+        stepsCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+
+        JLabel stTitle = new JLabel("Olay Akışı");
+        stTitle.setFont(new Font("Arial", Font.BOLD, 11));
+        stTitle.setForeground(MUTED);
+        stTitle.setBackground(HEADER_BG);
+        stTitle.setOpaque(true);
+        stTitle.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        stTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        stTitle.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        stepsCard.add(stTitle);
+
+        JPanel stBody = new JPanel();
+        stBody.setLayout(new BoxLayout(stBody, BoxLayout.Y_AXIS));
+        stBody.setBackground(CARD);
+        stBody.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        String[] steps = {
+            "Müşteriyi seçin veya ekleyin",
+            "Tarih ve KDV oranını belirleyin",
+            "İş kalemlerini ve fiyatları girin",
+            "Sistem toplamı otomatik hesaplar",
+            "Faturayı oluşturun ve kaydedin"
+        };
+        for (int i = 0; i < steps.length; i++) {
+            stBody.add(stepRow(i + 1, steps[i]));
+            if (i < steps.length - 1) stBody.add(Box.createVerticalStrut(8));
+        }
+        stepsCard.add(stBody);
+        right.add(stepsCard);
+        right.add(Box.createVerticalGlue());
+
+        body.add(right, BorderLayout.EAST);
+        p.add(body, BorderLayout.CENTER);
+        return p;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  SAYFA 2 — FATURA OLUŞTUR
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Yeni fatura oluşturma formu.
-     * Müşteri, tutar, tarih, KDV oranı ve açıklama alanları içerir.
-     * "Kaydet" butonu InvoiceService.createInvoice() metodunu çağırır.
-     */
-    private JPanel buildInvoicePage() {
-        JPanel page = new JPanel(new BorderLayout());
-        page.setBackground(PINK_LIGHT);
-        page.add(buildPageHeader("Fatura Oluştur", "Yeni fatura düzenle ve sisteme kaydet"), BorderLayout.NORTH);
+    // Fatura formu yardımcı metodlar
+    private JPanel invSection(String title) {
+        JPanel sec = new JPanel();
+        sec.setLayout(new BoxLayout(sec, BoxLayout.Y_AXIS));
+        sec.setBackground(CARD);
+        sec.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sec.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        sec.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(0, 0, 0, 0)));
 
-        // Form paneli
-        JPanel form = new JPanel(null);
-        form.setBackground(WHITE);
-        form.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        JPanel hdr = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        hdr.setBackground(new Color(250, 250, 247));
+        hdr.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        hdr.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hdr.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COL),
+            BorderFactory.createEmptyBorder(8, 0, 8, 0)));
+        JLabel dot = new JLabel("●");
+        dot.setForeground(PINK);
+        dot.setFont(new Font("Arial", Font.PLAIN, 8));
+        JLabel ttl = new JLabel(title);
+        ttl.setFont(new Font("Arial", Font.BOLD, 13));
+        ttl.setForeground(TEXT);
+        hdr.add(dot); hdr.add(ttl);
+        sec.add(hdr);
 
-        // Sol sütun etiketleri ve alanları
-        addFormRow(form, "Müşteri Adı *",     createStyledTextField("Müşteri seçin veya yazın"),  50,  80);
-        addFormRow(form, "Fatura No",          createStyledTextField("Otomatik atanır"),            50, 145);
-        addFormRow(form, "Toplam Tutar (₺) *", createStyledTextField("0.00"),                      50, 210);
-        addFormRow(form, "KDV Oranı",          createStyledTextField("%18 (Standart)"),             50, 275);
-        addFormRow(form, "Vade Tarihi",        createStyledTextField("gg/aa/yyyy"),                 50, 340);
-
-        JLabel lblNot = new JLabel("Açıklama / Not:");
-        lblNot.setFont(new Font("Arial", Font.BOLD, 12));
-        lblNot.setForeground(TEXT_DARK);
-        lblNot.setBounds(50, 405, 200, 20);
-        form.add(lblNot);
-
-        JTextArea txtNote = new JTextArea();
-        txtNote.setFont(new Font("Arial", Font.PLAIN, 12));
-        txtNote.setLineWrap(true);
-        JScrollPane noteSp = new JScrollPane(txtNote);
-        noteSp.setBounds(50, 428, 450, 70);
-        noteSp.setBorder(BorderFactory.createLineBorder(PINK_SOFT, 1));
-        form.add(noteSp);
-
-        // Kaydet butonu
-        JButton saveBtn = createPinkButton("Faturayı Oluştur ve Kaydet");
-        saveBtn.setBounds(50, 520, 250, 42);
-        form.add(saveBtn);
-
-        // İptal butonu
-        JButton cancelBtn = new JButton("Temizle");
-        cancelBtn.setBounds(315, 520, 120, 42);
-        cancelBtn.setFont(new Font("Arial", Font.PLAIN, 13));
-        cancelBtn.setForeground(TEXT_GRAY);
-        cancelBtn.setBackground(WHITE);
-        cancelBtn.setBorder(BorderFactory.createLineBorder(PINK_SOFT, 1, true));
-        cancelBtn.setFocusPainted(false);
-        form.add(cancelBtn);
-
-        // Kaydet aksiyonu — InvoiceService bağlantısı
-        saveBtn.addActionListener(e -> {
-            // Aşama 4'te gerçek Invoice nesnesi oluşturulup servise gönderilecek
-            // invoiceService.createInvoice(newInvoice);
-            JOptionPane.showMessageDialog(this,
-                "Fatura başarıyla oluşturuldu ve sisteme kaydedildi.",
-                "İşlem Başarılı", JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        cancelBtn.addActionListener(e -> {
-            // Tüm form alanlarını temizle — Aşama 4'te geliştirilecek
-            JOptionPane.showMessageDialog(this, "Form temizlendi.", "Bilgi", JOptionPane.PLAIN_MESSAGE);
-        });
-
-        page.add(new JScrollPane(form), BorderLayout.CENTER);
-        return page;
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
+        body.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sec.add(body);
+        return body; // body döndür, öğeler body'e eklenir
     }
 
-    /** Form satırı (etiket + alan) ekler — fatura formu için yardımcı metod. */
-    private void addFormRow(JPanel panel, String label, JTextField field, int x, int y) {
+    private JPanel invField(String label, JComponent comp) {
+        JPanel wrap = new JPanel(new BorderLayout(0, 4));
+        wrap.setOpaque(false);
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Arial", Font.BOLD, 12));
-        lbl.setForeground(TEXT_DARK);
-        lbl.setBounds(x, y, 200, 20);
-        field.setBounds(x, y + 24, 450, 36);
-        panel.add(lbl);
-        panel.add(field);
+        lbl.setFont(new Font("Arial", Font.BOLD, 10));
+        lbl.setForeground(MUTED);
+        wrap.add(lbl, BorderLayout.NORTH);
+        wrap.add(comp, BorderLayout.CENTER);
+        return wrap;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  SAYFA 3 — MÜŞTERİ LİSTESİ
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Kayıtlı tüm müşterileri tablo halinde listeler.
-     * Durum sütunu renk kodlu rozet ile gösterilir.
-     */
-    private JPanel buildCustomerPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 8));
-        page.setBackground(PINK_LIGHT);
-        page.add(buildPageHeader("Müşteri Listesi", "Kayıtlı tüm müşteriler ve cari bakiyeleri"), BorderLayout.NORTH);
+    private JTextField readonlyField(String hint) {
+        JTextField f = new JTextField(hint);
+        f.setFont(new Font("Arial", Font.PLAIN, 13));
+        f.setForeground(MUTED);
+        f.setBackground(new Color(242, 239, 233));
+        f.setEditable(false);
+        f.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+        return f;
+    }
 
-        // Arama ve filtre çubuğu
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
-        toolbar.setOpaque(false);
-        JTextField searchField = createStyledTextField("Müşteri adı veya vergi no ile ara...");
-        searchField.setPreferredSize(new Dimension(280, 34));
-        JButton searchBtn = createPinkButton("Ara");
-        searchBtn.setPreferredSize(new Dimension(80, 34));
-        JButton addBtn = new JButton("+ Yeni Müşteri");
-        addBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        addBtn.setForeground(PINK_MAIN);
-        addBtn.setBackground(WHITE);
-        addBtn.setBorder(BorderFactory.createLineBorder(PINK_MAIN, 1, true));
-        addBtn.setFocusPainted(false);
-        addBtn.setPreferredSize(new Dimension(130, 34));
-        toolbar.add(searchField);
-        toolbar.add(searchBtn);
-        toolbar.add(addBtn);
-        page.add(toolbar, BorderLayout.NORTH);  // üste ekle (header'ın altına gelecek)
+    private void fillCustomerFields() {
+        String sel = (String) custCombo.getSelectedItem();
+        if (sel == null || sel.startsWith("—")) {
+            fiTax.setText("Müşteri seçince dolar");
+            fiEmail.setText("Müşteri seçince dolar");
+            fiPhone.setText("Müşteri seçince dolar");
+            return;
+        }
+        for (Object[] c : CUSTOMERS) {
+            if (c[1].equals(sel)) {
+                fiTax.setText((String) c[3]);
+                fiEmail.setText((String) c[4]);
+                fiPhone.setText((String) c[5]);
+                return;
+            }
+        }
+    }
+
+    private void addLineRow() {
+        double[] data = {1.0, 0.0};
+        lineData.add(data);
+        int idx = lineData.size() - 1;
+
+        JPanel row = new JPanel(new GridBagLayout());
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        row.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 236, 230)));
+
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridy = 0; g.fill = GridBagConstraints.HORIZONTAL; g.insets = new Insets(2, 2, 2, 2);
+
+        JTextField desc = new JTextField();
+        desc.setFont(new Font("Arial", Font.PLAIN, 12));
+        desc.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(4, 7, 4, 7)));
+
+        JTextField qty = new JTextField("1");
+        qty.setFont(new Font("Arial", Font.PLAIN, 12));
+        qty.setHorizontalAlignment(SwingConstants.CENTER);
+        qty.setPreferredSize(new Dimension(55, 28));
+        qty.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(4, 4, 4, 4)));
+
+        JTextField price = new JTextField("0.00");
+        price.setFont(new Font("Arial", Font.PLAIN, 12));
+        price.setHorizontalAlignment(SwingConstants.RIGHT);
+        price.setPreferredSize(new Dimension(95, 28));
+        price.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(4, 7, 4, 7)));
+
+        JLabel total = new JLabel("₺0,00", SwingConstants.RIGHT);
+        total.setFont(new Font("Arial", Font.BOLD, 12));
+        total.setForeground(TEXT);
+        total.setPreferredSize(new Dimension(85, 28));
+
+        JButton del = new JButton("✕");
+        del.setFont(new Font("Arial", Font.PLAIN, 11));
+        del.setForeground(RED);
+        del.setBackground(CARD);
+        del.setBorderPainted(false);
+        del.setFocusPainted(false);
+        del.setPreferredSize(new Dimension(26, 26));
+        del.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        qty.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            void update() {
+                try { data[0] = Double.parseDouble(qty.getText()); } catch (Exception ex) { data[0] = 0; }
+                total.setText(fmtLine(data[0] * data[1]));
+                recalcTotals();
+            }
+        });
+        price.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            void update() {
+                try { data[1] = Double.parseDouble(price.getText()); } catch (Exception ex) { data[1] = 0; }
+                total.setText(fmtLine(data[0] * data[1]));
+                recalcTotals();
+            }
+        });
+        del.addActionListener(e -> {
+            lineData.remove(data);
+            lineContainer.remove(row);
+            lineContainer.revalidate();
+            lineContainer.repaint();
+            recalcTotals();
+        });
+
+        g.weightx = 1.0; g.gridx = 0; row.add(desc,  g);
+        g.weightx = 0;   g.gridx = 1; row.add(qty,   g);
+        g.gridx = 2; row.add(price, g);
+        g.gridx = 3; row.add(total, g);
+        g.gridx = 4; row.add(del,   g);
+
+        lineContainer.add(row);
+    }
+
+    private void recalcTotals() {
+        double sub = 0;
+        for (double[] d : lineData) sub += d[0] * d[1];
+        int vatPct = 18;
+        String vs = vatCombo != null ? (String) vatCombo.getSelectedItem() : "%18 Standart";
+        if (vs != null) {
+            if      (vs.contains("0"))  vatPct = 0;
+            else if (vs.contains("%1 ")) vatPct = 1;
+            else if (vs.contains("%8"))  vatPct = 8;
+            else if (vs.contains("%18")) vatPct = 18;
+            else if (vs.contains("%20")) vatPct = 20;
+        }
+        double vat   = sub * vatPct / 100.0;
+        double grand = sub + vat;
+        if (lblSubtotal   != null) lblSubtotal.setText(fmtLine(sub));
+        if (lblVat        != null) { lblVat.setText(fmtLine(vat)); }
+        if (lblGrandTotal != null) lblGrandTotal.setText(fmtLine(grand));
+    }
+
+    private String fmtLine(double v) {
+        return String.format("₺%,.2f", v).replace(",", "X").replace(".", ",").replace("X", ".");
+    }
+
+    private JLabel colHeader(String text, int align) {
+        JLabel l = new JLabel(text, align);
+        l.setFont(new Font("Arial", Font.BOLD, 10));
+        l.setForeground(MUTED);
+        l.setBackground(HEADER_BG);
+        l.setOpaque(true);
+        l.setBorder(BorderFactory.createEmptyBorder(5, 6, 5, 6));
+        l.setPreferredSize(new Dimension(0, 26));
+        return l;
+    }
+
+    private JPanel buildTotRow(String label, JLabel valLabel, boolean grand) {
+        JPanel r = new JPanel(new BorderLayout());
+        r.setOpaque(false);
+        r.setAlignmentX(Component.LEFT_ALIGNMENT);
+        r.setMaximumSize(new Dimension(Integer.MAX_VALUE, grand ? 36 : 28));
+        if (grand) r.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(2, 0, 0, 0, BORDER_COL),
+            BorderFactory.createEmptyBorder(4, 6, 4, 6)));
+        else r.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(grand ? new Font("Arial", Font.BOLD, 14) : new Font("Arial", Font.PLAIN, 12));
+        lbl.setForeground(grand ? PINK_H : new Color(100, 100, 100));
+        valLabel.setFont(grand ? new Font("Arial", Font.BOLD, 14) : new Font("Arial", Font.PLAIN, 12));
+        valLabel.setForeground(grand ? PINK_H : TEXT);
+        r.add(lbl, BorderLayout.WEST);
+        r.add(valLabel, BorderLayout.EAST);
+        return r;
+    }
+
+    private JLabel totRow(String ignored, String init, boolean ignored2) {
+        JLabel l = new JLabel(init, SwingConstants.RIGHT);
+        return l;
+    }
+
+    private JPanel scInfoRow(String label, JComponent value) {
+        JPanel r = new JPanel(new BorderLayout(8, 0));
+        r.setOpaque(false);
+        r.setAlignmentX(Component.LEFT_ALIGNMENT);
+        r.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        JLabel l = new JLabel(label);
+        l.setFont(new Font("Arial", Font.PLAIN, 12));
+        l.setForeground(MUTED);
+        r.add(l, BorderLayout.WEST);
+        r.add(value, BorderLayout.EAST);
+        return r;
+    }
+
+    private JPanel scInfoRow2(String label, String value) {
+        JLabel v = new JLabel(value);
+        v.setFont(new Font("Arial", Font.PLAIN, 11));
+        v.setForeground(new Color(187, 187, 187));
+        return scInfoRow(label, v);
+    }
+
+    private JPanel stepRow(int num, String text) {
+        JPanel r = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        r.setOpaque(false);
+        r.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel n = new JLabel(String.valueOf(num));
+        n.setFont(new Font("Arial", Font.BOLD, 10));
+        n.setForeground(PINK);
+        n.setBackground(PINK_L);
+        n.setOpaque(true);
+        n.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
+        JLabel t = new JLabel(text);
+        t.setFont(new Font("Arial", Font.PLAIN, 12));
+        t.setForeground(new Color(120, 120, 120));
+        r.add(n); r.add(t);
+        return r;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  FATURA LİSTESİ
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildInvoiceList() {
+        JPanel p = page();
+        p.add(pageHeader("Fatura Listesi", "Oluşturulan tüm faturalar"), BorderLayout.NORTH);
+
+        JPanel body = new JPanel(new BorderLayout(0, 12));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
+
+        // Toolbar
+        JPanel tb = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        tb.setOpaque(false);
+        JTextField search = styledField("Fatura no, müşteri veya açıklama ara...");
+        search.setPreferredSize(new Dimension(300, 34));
+        JButton newInv = pinkButton("+ Yeni Fatura");
+        newInv.setPreferredSize(new Dimension(120, 34));
+        newInv.addActionListener(e -> cardLayout.show(contentPanel, "create-invoice"));
+        tb.add(search);
+        tb.add(newInv);
+        body.add(tb, BorderLayout.NORTH);
 
         // Tablo
-        String[] cols = {"Müşteri ID", "Ünvan", "Sektör", "Vergi No", "Açık Bakiye", "Son İşlem", "Durum"};
-        Object[][] data = {
-            {"101", "Ural Teknoloji A.Ş.",   "Yazılım",   "1234567890", "₺15.500", "12 May 2026", "Aktif"},
-            {"102", "Erdem Lojistik Ltd.",    "Lojistik",  "9876543210", "₺2.100",  "10 May 2026", "Bekliyor"},
-            {"103", "Yılmaz Yazılım A.Ş.",   "Teknoloji", "1122334455", "₺0",      "05 May 2026", "Aktif"},
-            {"104", "Öztürk Gıda San.",       "Gıda",      "5566778899", "₺45.000", "01 May 2026", "Gecikmiş"},
-            {"105", "Kaya İnşaat Ltd.",       "İnşaat",    "3344556677", "₺8.750",  "28 Nis 2026", "Bekliyor"},
-        };
+        String[] cols = {"Fatura No", "Müşteri", "Tarih", "Vade", "Tutar", "Durum", "İşlem"};
+        Object[][] data = new Object[INVOICES.length][7];
+        for (int i = 0; i < INVOICES.length; i++) {
+            System.arraycopy(INVOICES[i], 0, data[i], 0, 6);
+            data[i][6] = "···";
+        }
 
-        DefaultTableModel model = new DefaultTableModel(data, cols) {
-            public boolean isCellEditable(int r, int c) { return false; } // Düzenlemeyi kapat
-        };
-        JTable table = new JTable(model);
-        table.setRowHeight(36);
-        table.setFont(new Font("Arial", Font.PLAIN, 13));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-        table.getTableHeader().setBackground(PINK_LIGHT);
-        table.getTableHeader().setForeground(TEXT_DARK);
-        table.setGridColor(new Color(240, 235, 238));
-        table.setSelectionBackground(PINK_LIGHT);
-        table.setShowHorizontalLines(true);
-        table.setShowVerticalLines(false);
+        JTable tbl = styledTable(data, cols);
+        tbl.getColumnModel().getColumn(5).setCellRenderer(statusBadgeRenderer());
+        tbl.getColumnModel().getColumn(4).setCellRenderer(amountRenderer());
 
-        // "Durum" sütununu renkli göster
-        table.getColumnModel().getColumn(6).setCellRenderer(new StatusCellRenderer());
+        JPanel wrap = cardPanel(null);
+        wrap.add(scrollOf(tbl));
+        body.add(wrap, BorderLayout.CENTER);
 
-        JScrollPane sp = new JScrollPane(table);
-        sp.setBorder(BorderFactory.createEmptyBorder(0, 12, 12, 12));
-        sp.getViewport().setBackground(WHITE);
-
-        // Yeni müşteri ekleme simülasyonu
-        addBtn.addActionListener(e ->
-            JOptionPane.showMessageDialog(this,
-                "Yeni müşteri formu açılıyor...\n(Aşama 4'te tam form bağlanacak)",
-                "Müşteri Ekle", JOptionPane.INFORMATION_MESSAGE));
-
-        page.add(sp, BorderLayout.CENTER);
-        return page;
+        p.add(body, BorderLayout.CENTER);
+        return p;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  SAYFA 4 — HATIRLATICILARI
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Vadesi geçen faturaları listeler ve hatırlatma gönderim geçmişini gösterir.
-     * ReminderService.collectUnpaids() ve sendReminder() metodlarına bağlıdır.
-     */
-    private JPanel buildReminderPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 0));
-        page.setBackground(PINK_LIGHT);
-        page.add(buildPageHeader("Hatırlatıcılar", "Vadesi geçen ödemeler ve gönderim geçmişi"), BorderLayout.NORTH);
+    // ══════════════════════════════════════════════════════════════════════════
+    //  MÜŞTERİLER
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildCustomers() {
+        JPanel p = page();
+        p.add(pageHeader("Müşteri Yönetimi", "Kayıtlı Müşteri ve Tedarikçiler"), BorderLayout.NORTH);
 
-        JPanel body = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel body = new JPanel(new BorderLayout(0, 12));
         body.setOpaque(false);
-        body.setBorder(BorderFactory.createEmptyBorder(12, 16, 16, 16));
+        body.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
 
-        // --- Sol: Bekleyen hatırlatmalar ---
-        JPanel leftCard = buildCard("⚠  Bekleyen Hatırlatmalar");
+        JPanel tb = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        tb.setOpaque(false);
+        JTextField search = styledField("Müşteri adı, vergi no veya e-posta ara...");
+        search.setPreferredSize(new Dimension(300, 34));
+        JButton add = pinkButton("+ Yeni Müşteri");
+        add.setPreferredSize(new Dimension(130, 34));
+        add.addActionListener(e -> JOptionPane.showMessageDialog(this,
+            "Müşteri ekleme formu açılıyor...", "Yeni Müşteri", JOptionPane.PLAIN_MESSAGE));
+        tb.add(search); tb.add(add);
+        body.add(tb, BorderLayout.NORTH);
 
-        // Hatırlatma satırları (simülasyon — ileride ReminderService'ten gelecek)
-        String[][] reminders = {
-            {"Öztürk Gıda San.",  "₺45.000", "32 gün gecikti", "INV-2026-0041"},
-            {"Kaya İnşaat Ltd.",  "₺8.750",  "18 gün gecikti", "INV-2026-0038"},
-            {"Erdem Lojistik",    "₺2.100",  "5 gün gecikti",  "INV-2026-0039"},
+        String[] cols = {"Firma / Ad", "Tür", "Vergi No", "E-Posta", "Telefon", "Bakiye"};
+        JTable tbl = styledTable(CUSTOMERS, cols);
+        tbl.getColumnModel().getColumn(1).setCellRenderer(custTypeBadgeRenderer());
+        tbl.getColumnModel().getColumn(5).setCellRenderer(balanceRenderer());
+
+        JPanel wrap = cardPanel(null);
+        wrap.add(scrollOf(tbl));
+        body.add(wrap, BorderLayout.CENTER);
+
+        p.add(body, BorderLayout.CENTER);
+        return p;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  HATIRLATMALAR
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildReminders() {
+        JPanel p = page();
+        p.add(pageHeader("Ödeme Hatırlatıcı", "Vadesi yaklaşan ve gecikmiş ödemeler"), BorderLayout.NORTH);
+
+        JPanel body = new JPanel(new BorderLayout(0, 12));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
+
+        JPanel list = new JPanel();
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setOpaque(false);
+
+        Object[][] remData = {
+            {"Demir Çelik San. Ltd.", "INV-002 · Vade: 2026-05-10 · Hammadde tedariki",  "₺8.900",  "gecikti"},
+            {"Akar Tedarik Tic.",     "INV-005 · Vade: 2026-04-20 · Montaj işçiliği",    "₺6.750",  "gecikti"},
+            {"Güneş Enerji Yat.",     "INV-003 · Vade: 2026-05-15 · Danışmanlık hizmeti","₺12.400", "vadesi"},
+            {"Yıldız Makine A.Ş.",   "INV-004 · Vade: 2026-05-31 · Yedek parça satışı", "₺22.000", "beklemede"},
         };
 
-        for (String[] r : reminders) {
-            JPanel row = new JPanel(new BorderLayout(8, 0));
-            row.setOpaque(false);
+        for (Object[] r : remData) {
+            list.add(reminderRow((String)r[0], (String)r[1], (String)r[2], (String)r[3]));
+            list.add(Box.createVerticalStrut(8));
+        }
+
+        JScrollPane sp = new JScrollPane(list);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.getViewport().setOpaque(false);
+        sp.setOpaque(false);
+        body.add(sp, BorderLayout.CENTER);
+        p.add(body, BorderLayout.CENTER);
+        return p;
+    }
+
+    private JPanel reminderRow(String name, String detail, String amount, String type) {
+        Color accent = "gecikti".equals(type) ? RED : "vadesi".equals(type) ? ORANGE : new Color(41, 128, 185);
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setBackground(CARD);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        row.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 4, 0, 0, accent),
+            BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COL, 1),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12))));
+
+        JPanel info = new JPanel(new GridLayout(2, 1, 0, 3));
+        info.setOpaque(false);
+        JLabel n = new JLabel(name);
+        n.setFont(new Font("Arial", Font.BOLD, 13));
+        n.setForeground(TEXT);
+        JLabel d = new JLabel(detail);
+        d.setFont(new Font("Arial", Font.PLAIN, 11));
+        d.setForeground(MUTED);
+        info.add(n); info.add(d);
+
+        JLabel amt = new JLabel(amount);
+        amt.setFont(new Font("Arial", Font.BOLD, 14));
+        amt.setForeground(PINK_H);
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        btns.setOpaque(false);
+        JButton sms   = outlineButton("SMS");
+        JButton email = outlineButton("E-posta");
+        JButton paid  = pinkButton("Ödendi");
+        paid.setFont(new Font("Arial", Font.BOLD, 11));
+        String n2 = name;
+        sms.addActionListener(e   -> JOptionPane.showMessageDialog(this, n2 + " — SMS gönderildi.", "SMS", JOptionPane.INFORMATION_MESSAGE));
+        email.addActionListener(e -> JOptionPane.showMessageDialog(this, n2 + " — E-posta gönderildi.", "E-posta", JOptionPane.INFORMATION_MESSAGE));
+        paid.addActionListener(e  -> JOptionPane.showMessageDialog(this, n2 + " — Ödendi olarak işaretlendi.", "Ödendi", JOptionPane.INFORMATION_MESSAGE));
+        btns.add(sms); btns.add(email); btns.add(paid);
+
+        JPanel right = new JPanel(new BorderLayout(8, 0));
+        right.setOpaque(false);
+        right.add(amt,  BorderLayout.WEST);
+        right.add(btns, BorderLayout.EAST);
+
+        row.add(info,  BorderLayout.CENTER);
+        row.add(right, BorderLayout.EAST);
+        return row;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  RAPORLAMA
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildReports() {
+        JPanel p = page();
+        p.add(pageHeader("Finansal Raporlar", "Kar-Zarar Özeti & Gider Analizi"), BorderLayout.NORTH);
+
+        JPanel body = new JPanel(new BorderLayout(0, 16));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
+
+        JPanel topCards = new JPanel(new GridLayout(1, 3, 13, 0));
+        topCards.setOpaque(false);
+        topCards.add(summaryCard("Toplam Gelir",    "₺61.100", GREEN, "left"));
+        topCards.add(summaryCard("Toplam Gider",    "₺21.500", RED,   "left"));
+        topCards.add(summaryCard("Net Kar / Zarar", "₺39.600", PINK,  "left"));
+        body.add(topCards, BorderLayout.NORTH);
+
+        // İşlem geçmişi tablosu
+        JPanel wrap = cardPanel("İşlem Geçmişi");
+        String[] cols = {"ID", "Tarih", "Tür", "Kategori", "Tutar"};
+        JTable tbl = styledTable(TRANSACTIONS, cols);
+        tbl.getColumnModel().getColumn(2).setCellRenderer(typeBadgeRenderer());
+        tbl.getColumnModel().getColumn(4).setCellRenderer(amountRenderer());
+
+        JPanel tbRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 8));
+        tbRow.setOpaque(false);
+        JButton csv = outlineButton("CSV Dışa Aktar");
+        csv.addActionListener(e -> JOptionPane.showMessageDialog(this, "CSV dışa aktarıldı.", "Başarılı", JOptionPane.INFORMATION_MESSAGE));
+        tbRow.add(csv);
+        wrap.add(tbRow);
+        wrap.add(scrollOf(tbl));
+        body.add(wrap, BorderLayout.CENTER);
+
+        p.add(body, BorderLayout.CENTER);
+        return p;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  VADESİ GELENLER
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel buildOverdue() {
+        JPanel p = page();
+        p.add(pageHeader("Vadesi Gelenler", "Vadesi geçmiş fatura listesi"), BorderLayout.NORTH);
+
+        JPanel body = new JPanel(new BorderLayout(0, 12));
+        body.setOpaque(false);
+        body.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
+
+        Object[][] data = {
+            {"INV-002","Demir Çelik San. Ltd.","Hammadde tedariki",  "₺8.900", "2026-05-10"},
+            {"INV-005","Akar Tedarik Tic.",    "Montaj işçiliği",    "₺6.750", "2026-04-20"},
+        };
+
+        JPanel list = new JPanel();
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setOpaque(false);
+
+        for (Object[] r : data) {
+            JPanel row = new JPanel(new BorderLayout(12, 0));
+            row.setBackground(new Color(255, 248, 247));
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
             row.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 230, 235)),
-                BorderFactory.createEmptyBorder(10, 4, 10, 4)));
+                BorderFactory.createLineBorder(new Color(245, 198, 192), 1, true),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14)));
 
-            JPanel info = new JPanel(new GridLayout(2, 1, 0, 2));
+            JPanel info = new JPanel(new GridLayout(2, 1, 0, 3));
             info.setOpaque(false);
-            JLabel name = new JLabel(r[0]);
-            name.setFont(new Font("Arial", Font.BOLD, 13));
-            name.setForeground(TEXT_DARK);
-            JLabel detail = new JLabel(r[3] + "  •  " + r[2]);
-            detail.setFont(new Font("Arial", Font.PLAIN, 11));
-            detail.setForeground(TEXT_GRAY);
-            info.add(name); info.add(detail);
+            JLabel n = new JLabel((String) r[1]);
+            n.setFont(new Font("Arial", Font.BOLD, 13));
+            n.setForeground(RED);
+            JLabel d = new JLabel(r[0] + " · " + r[2]);
+            d.setFont(new Font("Arial", Font.PLAIN, 11));
+            d.setForeground(MUTED);
+            info.add(n); info.add(d);
 
-            JPanel right = new JPanel(new GridLayout(2, 1, 0, 4));
+            JPanel right = new JPanel(new BorderLayout(10, 0));
             right.setOpaque(false);
-            JLabel amount = new JLabel(r[1], SwingConstants.RIGHT);
-            amount.setFont(new Font("Georgia", Font.BOLD, 14));
-            amount.setForeground(RED_LATE);
-            JButton sendBtn = new JButton("Gönder");
-            sendBtn.setFont(new Font("Arial", Font.BOLD, 11));
-            sendBtn.setBackground(PINK_MAIN);
-            sendBtn.setForeground(WHITE);
-            sendBtn.setBorderPainted(false);
-            sendBtn.setFocusPainted(false);
-            final String custName = r[0];
-            // ReminderService.sendReminder() çağrısı
-            sendBtn.addActionListener(e -> {
-                reminderService.sendReminder(custName, "E-posta");
-                JOptionPane.showMessageDialog(page,
-                    custName + " müşterisine hatırlatma gönderildi.",
-                    "Hatırlatma Gönderildi", JOptionPane.INFORMATION_MESSAGE);
-            });
-            right.add(amount); right.add(sendBtn);
+            JPanel amtDate = new JPanel(new GridLayout(2, 1, 0, 2));
+            amtDate.setOpaque(false);
+            JLabel amt = new JLabel((String) r[3], SwingConstants.RIGHT);
+            amt.setFont(new Font("Arial", Font.BOLD, 14));
+            amt.setForeground(RED);
+            JLabel due = new JLabel("Vade: " + r[4], SwingConstants.RIGHT);
+            due.setFont(new Font("Arial", Font.PLAIN, 11));
+            due.setForeground(ORANGE);
+            amtDate.add(amt); amtDate.add(due);
+
+            JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+            btns.setOpaque(false);
+            JButton remind = outlineButton("Hatırlat");
+            JButton paid = pinkButton("Ödendi");
+            btns.add(remind); btns.add(paid);
+
+            right.add(amtDate, BorderLayout.CENTER);
+            right.add(btns, BorderLayout.EAST);
 
             row.add(info, BorderLayout.CENTER);
             row.add(right, BorderLayout.EAST);
-            leftCard.add(row);
+            list.add(row);
+            list.add(Box.createVerticalStrut(8));
         }
 
-        // Toplu gönder butonu
-        JButton bulkBtn = createPinkButton("Tümüne Toplu Hatırlatma Gönder");
-        bulkBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-        bulkBtn.addActionListener(e ->
-            JOptionPane.showMessageDialog(page,
-                "Tüm gecikmiş müşterilere hatırlatma gönderildi.",
-                "Toplu Gönderim", JOptionPane.INFORMATION_MESSAGE));
-        leftCard.add(Box.createVerticalStrut(12));
-        leftCard.add(bulkBtn);
-
-        // --- Sağ: Gönderim geçmişi ---
-        JPanel rightCard = buildCard("✓  Gönderim Geçmişi");
-
-        String[][] history = {
-            {"Ural Teknoloji",  "E-posta", "12 May 2026"},
-            {"Erdem Lojistik",  "SMS",     "10 May 2026"},
-            {"Öztürk Gıda",     "E-posta", "07 May 2026"},
-            {"Kaya İnşaat",     "SMS",     "05 May 2026"},
-        };
-
-        for (String[] h : history) {
-            JPanel row = new JPanel(new BorderLayout());
-            row.setOpaque(false);
-            row.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 230, 235)));
-
-            JLabel nameLbl = new JLabel("  " + h[0]);
-            nameLbl.setFont(new Font("Arial", Font.PLAIN, 13));
-            nameLbl.setForeground(TEXT_DARK);
-
-            JLabel channelLbl = new JLabel(h[1] + "  ");
-            channelLbl.setFont(new Font("Arial", Font.BOLD, 11));
-            channelLbl.setForeground(GREEN_OK);
-
-            JLabel dateLbl = new JLabel(h[2] + "  ", SwingConstants.RIGHT);
-            dateLbl.setFont(new Font("Arial", Font.PLAIN, 11));
-            dateLbl.setForeground(TEXT_GRAY);
-
-            row.add(nameLbl, BorderLayout.WEST);
-            row.add(channelLbl, BorderLayout.CENTER);
-            row.add(dateLbl, BorderLayout.EAST);
-            row.setPreferredSize(new Dimension(0, 38));
-            rightCard.add(row);
-        }
-
-        body.add(leftCard);
-        body.add(rightCard);
-        page.add(body, BorderLayout.CENTER);
-        return page;
+        body.add(list, BorderLayout.NORTH);
+        p.add(body, BorderLayout.CENTER);
+        return p;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  SAYFA 5 — FİNANSAL RAPORLAR
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Kar-zarar özeti ve dönemsel finansal verileri gösterir.
-     * SituationService.calculateProfitLoss() ile bağlanacak.
-     */
-    private JPanel buildReportPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 0));
-        page.setBackground(PINK_LIGHT);
-        page.add(buildPageHeader("Finansal Raporlar", "Dönemsel kar-zarar ve gelir/gider analizi"), BorderLayout.NORTH);
-
-        JPanel body = new JPanel(new GridLayout(2, 2, 12, 12));
-        body.setOpaque(false);
-        body.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
-
-        // Kar-Zarar Özeti
-        JPanel klCard = buildCard("Kar / Zarar Özeti — Mayıs 2026");
-        addReportRow(klCard, "Toplam Gelir",  "₺84.500", GREEN_OK);
-        addReportRow(klCard, "Toplam Gider",  "₺31.200", RED_LATE);
-        addReportRow(klCard, "Net Kar",       "₺53.300", PINK_MAIN);
-        body.add(klCard);
-
-        // Gelir Kaynakları
-        JPanel gelirCard = buildCard("Gelir Kaynakları");
-        addReportRow(gelirCard, "Fatura Gelirleri",   "₺72.000", TEXT_DARK);
-        addReportRow(gelirCard, "Diğer Gelirler",     "₺12.500", TEXT_DARK);
-        body.add(gelirCard);
-
-        // Gider Dağılımı
-        JPanel giderCard = buildCard("Gider Dağılımı");
-        addReportRow(giderCard, "Operasyonel Giderler", "₺18.000", TEXT_DARK);
-        addReportRow(giderCard, "Tedarikçi Ödemeleri",  "₺13.200", TEXT_DARK);
-        body.add(giderCard);
-
-        // Gecikmiş Ödemeler
-        JPanel gecikCard = buildCard("Gecikmiş Ödemeler");
-        addReportRow(gecikCard, "Öztürk Gıda San.",  "₺45.000", RED_LATE);
-        addReportRow(gecikCard, "Kaya İnşaat Ltd.",  "₺8.750",  ORANGE_WAIT);
-        addReportRow(gecikCard, "Erdem Lojistik",    "₺2.100",  ORANGE_WAIT);
-        body.add(gecikCard);
-
-        // CSV Export butonu (Simay'ın Python modülüne bağlanacak)
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 8));
-        btnPanel.setOpaque(false);
-        JButton exportBtn = createPinkButton("CSV Olarak Dışa Aktar (Python Analizi)");
-        exportBtn.addActionListener(e ->
-            JOptionPane.showMessageDialog(page,
-                "Veriler Python analiz modülüne aktarıldı.\n(Simay'ın export metodu Aşama 4'te bağlanacak)",
-                "Dışa Aktarma", JOptionPane.INFORMATION_MESSAGE));
-        btnPanel.add(exportBtn);
-
-        JPanel south = new JPanel(new BorderLayout());
-        south.setOpaque(false);
-        south.add(body, BorderLayout.CENTER);
-        south.add(btnPanel, BorderLayout.SOUTH);
-        page.add(south, BorderLayout.CENTER);
-
-        return page;
+    // ══════════════════════════════════════════════════════════════════════════
+    //  YARDIMCI FACTORY METODLAR
+    // ══════════════════════════════════════════════════════════════════════════
+    private JPanel page() {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(BG);
+        return p;
     }
 
-    /** Rapor kartına etiket-değer satırı ekler. */
-    private void addReportRow(JPanel card, String label, String value, Color valueColor) {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
-        row.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(240, 230, 235)));
-        row.setPreferredSize(new Dimension(0, 36));
-        JLabel lbl = new JLabel("  " + label);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
-        lbl.setForeground(TEXT_DARK);
-        JLabel val = new JLabel(value + "  ");
-        val.setFont(new Font("Georgia", Font.BOLD, 14));
-        val.setForeground(valueColor);
-        row.add(lbl, BorderLayout.WEST);
-        row.add(val, BorderLayout.EAST);
-        card.add(row);
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    //  YARDIMCI BILEŞENLER
-    // ════════════════════════════════════════════════════════════════════════
-
-    /** Sayfa üst başlık çubuğu oluşturur. */
-    private JPanel buildPageHeader(String title, String subtitle) {
-        JPanel header = new JPanel(new GridLayout(2, 1));
-        header.setBackground(WHITE);
-        header.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(230, 220, 225)),
+    private JPanel pageHeader(String title, String sub) {
+        JPanel h = new JPanel(new GridLayout(2, 1, 0, 2));
+        h.setBackground(CARD);
+        h.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COL),
             BorderFactory.createEmptyBorder(16, 24, 12, 24)));
         JLabel t = new JLabel(title);
-        t.setFont(new Font("Georgia", Font.BOLD, 22));
-        t.setForeground(TEXT_DARK);
-        JLabel s = new JLabel(subtitle);
+        t.setFont(new Font("Arial", Font.BOLD, 20));
+        t.setForeground(new Color(26, 26, 26));
+        JLabel s = new JLabel(sub);
         s.setFont(new Font("Arial", Font.PLAIN, 12));
-        s.setForeground(TEXT_GRAY);
-        header.add(t); header.add(s);
-        return header;
+        s.setForeground(MUTED);
+        h.add(t); h.add(s);
+        return h;
     }
 
-    /** İçerik kartı (beyaz arka planlı kutu) oluşturur. */
-    private JPanel buildCard(String title) {
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(230, 220, 225), 1, true),
-            BorderFactory.createEmptyBorder(16, 16, 16, 16)));
-        JLabel lbl = new JLabel(title);
-        lbl.setFont(new Font("Arial", Font.BOLD, 13));
-        lbl.setForeground(PINK_MAIN);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(lbl);
-        card.add(Box.createVerticalStrut(10));
-        return card;
+    private JPanel cardPanel(String title) {
+        JPanel c = new JPanel();
+        c.setLayout(new BoxLayout(c, BoxLayout.Y_AXIS));
+        c.setBackground(CARD);
+        c.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(14, 16, 14, 16)));
+        if (title != null) {
+            JLabel lbl = new JLabel(title);
+            lbl.setFont(new Font("Arial", Font.BOLD, 13));
+            lbl.setForeground(TEXT);
+            lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+            lbl.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+            c.add(lbl);
+        }
+        return c;
     }
 
-    /** Pembe stilinde buton oluşturur. */
-    private JButton createPinkButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Arial", Font.BOLD, 13));
-        btn.setBackground(PINK_MAIN);
-        btn.setForeground(WHITE);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
+    private JPanel summaryCard(String label, String value, Color color, String ignored) {
+        JPanel c = new JPanel(null);
+        c.setBackground(CARD);
+        c.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 4, 0, 0, color),
+            BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COL, 1),
+                BorderFactory.createEmptyBorder(14, 16, 14, 16))));
+        c.setPreferredSize(new Dimension(0, 90));
+
+        JLabel lbl = new JLabel(label.toUpperCase());
+        lbl.setFont(new Font("Arial", Font.PLAIN, 10));
+        lbl.setForeground(MUTED);
+        lbl.setBounds(16, 14, 200, 14);
+
+        JLabel val = new JLabel(value);
+        val.setFont(new Font("Arial", Font.BOLD, 22));
+        val.setForeground(color);
+        val.setBounds(16, 32, 200, 30);
+
+        c.add(lbl); c.add(val);
+        return c;
     }
 
-    /** Pembe kenarlıklı metin alanı oluşturur. */
-    private JTextField createStyledTextField(String placeholder) {
-        JTextField field = new JTextField(placeholder);
-        field.setFont(new Font("Arial", Font.PLAIN, 13));
-        field.setForeground(TEXT_GRAY);
-        field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(PINK_SOFT, 1, true),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)));
-        // Placeholder davranışı
-        field.addFocusListener(new FocusAdapter() {
+    private JPanel infoRow(String label, String value, Color valueColor) {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        row.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
+        JLabel l = new JLabel(label);
+        l.setFont(new Font("Arial", Font.PLAIN, 12));
+        l.setForeground(MUTED);
+        JLabel v = new JLabel(value);
+        v.setFont(new Font("Arial", Font.BOLD, 12));
+        v.setForeground(valueColor);
+        row.add(l, BorderLayout.WEST);
+        row.add(v, BorderLayout.EAST);
+        return row;
+    }
+
+    private JLabel formLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("Arial", Font.BOLD, 11));
+        l.setForeground(MUTED);
+        return l;
+    }
+
+    private JTextField styledField(String hint) {
+        JTextField f = new JTextField(hint);
+        f.setFont(new Font("Arial", Font.PLAIN, 13));
+        f.setForeground(MUTED);
+        f.setBackground(new Color(250, 250, 247));
+        f.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COL, 1, true),
+            BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+        f.addFocusListener(new FocusAdapter() {
             public void focusGained(FocusEvent e) {
-                if (field.getText().equals(placeholder)) {
-                    field.setText(""); field.setForeground(TEXT_DARK);
-                }
+                if (f.getText().equals(hint)) { f.setText(""); f.setForeground(TEXT); }
+                f.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(PINK, 1, true),
+                    BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+                f.setBackground(CARD);
             }
             public void focusLost(FocusEvent e) {
-                if (field.getText().isEmpty()) {
-                    field.setText(placeholder); field.setForeground(TEXT_GRAY);
-                }
+                if (f.getText().isEmpty()) { f.setText(hint); f.setForeground(MUTED); }
+                f.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_COL, 1, true),
+                    BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+                f.setBackground(new Color(250, 250, 247));
             }
         });
-        return field;
+        return f;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  "DURUM" SÜTUNU ÖZEL RENDERER
-    // ════════════════════════════════════════════════════════════════════════
-    /**
-     * Müşteri tablosunda "Durum" sütununu renk kodlu gösterir:
-     * Aktif = Yeşil | Bekliyor = Turuncu | Gecikmiş = Kırmızı
-     */
-    private static class StatusCellRenderer extends DefaultTableCellRenderer {
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected,
-                boolean hasFocus, int row, int col) {
-            JLabel lbl = (JLabel) super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, col);
-            lbl.setHorizontalAlignment(SwingConstants.CENTER);
+    private JButton pinkButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Arial", Font.BOLD, 12));
+        b.setBackground(PINK);
+        b.setForeground(Color.WHITE);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        b.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { b.setBackground(PINK_H); }
+            public void mouseExited(MouseEvent e)  { b.setBackground(PINK);   }
+        });
+        return b;
+    }
+
+    private JButton outlineButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Arial", Font.PLAIN, 11));
+        b.setForeground(PINK);
+        b.setBackground(CARD);
+        b.setBorder(BorderFactory.createLineBorder(PINK, 1, true));
+        b.setFocusPainted(false);
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        b.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { b.setBackground(PINK_L); }
+            public void mouseExited(MouseEvent e)  { b.setBackground(CARD);   }
+        });
+        return b;
+    }
+
+    private JTable styledTable(Object[][] data, String[] cols) {
+        DefaultTableModel model = new DefaultTableModel(data, cols) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable t = new JTable(model);
+        t.setRowHeight(36);
+        t.setFont(new Font("Arial", Font.PLAIN, 13));
+        t.setGridColor(new Color(240, 236, 230));
+        t.setShowVerticalLines(false);
+        t.setShowHorizontalLines(true);
+        t.setSelectionBackground(PINK_L);
+        t.setSelectionForeground(TEXT);
+        t.setBackground(CARD);
+        t.setIntercellSpacing(new Dimension(0, 0));
+        JTableHeader th = t.getTableHeader();
+        th.setBackground(HEADER_BG);
+        th.setForeground(MUTED);
+        th.setFont(new Font("Arial", Font.BOLD, 11));
+        th.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COL));
+        th.setReorderingAllowed(false);
+        return t;
+    }
+
+    private JScrollPane scrollOf(JTable t) {
+        JScrollPane sp = new JScrollPane(t);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sp.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        return sp;
+    }
+
+    // ── Özel cell renderer'lar ────────────────────────────────────────────────
+    private TableCellRenderer statusBadgeRenderer() {
+        return (table, value, isSelected, hasFocus, row, col) -> {
+            JLabel lbl = new JLabel(value != null ? value.toString() : "", SwingConstants.CENTER);
+            lbl.setFont(new Font("Arial", Font.BOLD, 11));
             lbl.setOpaque(true);
-            String status = value.toString();
-            switch (status) {
-                case "Aktif":     lbl.setForeground(new Color(39, 174, 96));  break;
-                case "Bekliyor":  lbl.setForeground(new Color(230, 126, 34)); break;
-                case "Gecikmiş":  lbl.setForeground(new Color(192, 57, 43));  break;
-                default:          lbl.setForeground(Color.GRAY);
+            String v = value != null ? value.toString() : "";
+            switch (v) {
+                case "Ödendi":          lbl.setBackground(new Color(213,245,227)); lbl.setForeground(new Color(30,132,73));  break;
+                case "Beklemede":       lbl.setBackground(new Color(253,235,208)); lbl.setForeground(new Color(183,119,13)); break;
+                case "Gecikti":         lbl.setBackground(new Color(250,219,216)); lbl.setForeground(new Color(146,43,33));  break;
+                case "Taslak":          lbl.setBackground(new Color(236,236,236)); lbl.setForeground(new Color(85,85,85));   break;
+                case "Gönderildi":      lbl.setBackground(new Color(214,234,248)); lbl.setForeground(new Color(26,82,118));  break;
+                case "Vadesi Yaklaştı": lbl.setBackground(new Color(254,249,231)); lbl.setForeground(new Color(154,125,10)); break;
+                default:                lbl.setBackground(HEADER_BG);             lbl.setForeground(MUTED);
             }
-            lbl.setBackground(isSelected ? new Color(255, 228, 235) : Color.WHITE);
+            if (isSelected) lbl.setBackground(PINK_L);
             return lbl;
-        }
+        };
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  MAIN — PROGRAM BAŞLANGIÇ NOKTASI
-    // ════════════════════════════════════════════════════════════════════════
+    private TableCellRenderer custTypeBadgeRenderer() {
+        return (table, value, isSelected, hasFocus, row, col) -> {
+            JLabel lbl = new JLabel(value != null ? value.toString() : "", SwingConstants.CENTER);
+            lbl.setFont(new Font("Arial", Font.BOLD, 11));
+            lbl.setOpaque(true);
+            if ("Müşteri".equals(value)) {
+                lbl.setBackground(new Color(214,234,248)); lbl.setForeground(new Color(26,82,118));
+            } else {
+                lbl.setBackground(new Color(232,218,239)); lbl.setForeground(new Color(108,52,131));
+            }
+            if (isSelected) lbl.setBackground(PINK_L);
+            return lbl;
+        };
+    }
+
+    private TableCellRenderer typeBadgeRenderer() {
+        return (table, value, isSelected, hasFocus, row, col) -> {
+            JLabel lbl = new JLabel(value != null ? value.toString() : "", SwingConstants.CENTER);
+            lbl.setFont(new Font("Arial", Font.BOLD, 11));
+            lbl.setOpaque(true);
+            if ("GELİR".equals(value)) {
+                lbl.setBackground(new Color(213,245,227)); lbl.setForeground(new Color(30,132,73));
+            } else {
+                lbl.setBackground(new Color(250,219,216)); lbl.setForeground(new Color(146,43,33));
+            }
+            if (isSelected) lbl.setBackground(PINK_L);
+            return lbl;
+        };
+    }
+
+    private TableCellRenderer amountRenderer() {
+        return (table, value, isSelected, hasFocus, row, col) -> {
+            JLabel lbl = new JLabel(value != null ? value.toString() : "", SwingConstants.RIGHT);
+            lbl.setFont(new Font("Arial", Font.BOLD, 13));
+            lbl.setForeground(TEXT);
+            lbl.setOpaque(true);
+            lbl.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
+            lbl.setBackground(isSelected ? PINK_L : CARD);
+            return lbl;
+        };
+    }
+
+    private TableCellRenderer balanceRenderer() {
+        return (table, value, isSelected, hasFocus, row, col) -> {
+            String v = value != null ? value.toString() : "";
+            JLabel lbl = new JLabel(v, SwingConstants.RIGHT);
+            lbl.setFont(new Font("Arial", Font.BOLD, 13));
+            lbl.setForeground(v.contains("Borç") ? RED : GREEN);
+            lbl.setOpaque(true);
+            lbl.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
+            lbl.setBackground(isSelected ? PINK_L : CARD);
+            return lbl;
+        };
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  MAIN
+    // ══════════════════════════════════════════════════════════════════════════
     public static void main(String[] args) {
+        try { UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName()); }
+        catch (Exception ignored) {}
+
         SwingUtilities.invokeLater(() -> {
             DashboardUI ui = new DashboardUI();
-            ui.showLoginScreen(); // Önce giriş ekranını göster
+            ui.showLoginScreen();
         });
     }
 }
