@@ -16,8 +16,8 @@ public class Customer {
     // class diyagraminda bu kisim belirtilmemistir —
     // hangi kaydın müşteri hangisinin tedarikçi olduğu tip alanından okunur
     public enum CustomerType {
-        CUSTOMER,
-        SUPPLIER
+        MUSTERI,
+        TEDARIKCI
     }
 
     private CustomerType type;

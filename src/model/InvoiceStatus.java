@@ -1,10 +1,11 @@
 package model;
+
 @SuppressWarnings("unused")
 public enum InvoiceStatus {
-	TASLAK,
+    TASLAK,
     BEKLEMEDE,
     GONDERILDI,
-    VADESI_YAKLASTI,
+    VADESI,
     GECIKTI,
     ODENDI,
     IPTAL

@@ -63,7 +63,7 @@ public class InvoiceService {
         List<Invoice> overdue = new ArrayList<>();
         for (Invoice invoice : store) {
             if (invoice.getStatus() == InvoiceStatus.GECIKTI ||
-                invoice.getStatus() == InvoiceStatus.VADESI_YAKLASTI) {
+                invoice.getStatus() == InvoiceStatus.VADESI) {
                 overdue.add(invoice);
             }
         }

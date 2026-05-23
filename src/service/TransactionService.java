@@ -21,7 +21,7 @@ public class TransactionService {
         }
         Transaction t = new Transaction();
         t.setId(id);
-        t.setType("GELIR");
+        t.setType("GELİR");
         t.setAmount(amount);
         t.setDate(new Date());
         t.setDescription(description);
@@ -39,7 +39,7 @@ public class TransactionService {
         }
         Transaction t = new Transaction();
         t.setId(id);
-        t.setType("GIDER");
+        t.setType("GİDER");
         t.setAmount(amount);
         t.setDate(new Date());
         t.setDescription(description);

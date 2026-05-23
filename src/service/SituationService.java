@@ -29,8 +29,8 @@ public class SituationService {
         double totalIncome  = 0;
         double totalExpense = 0;
 
-        List<Transaction> gelirler = transactionService.listTransactions(transactions, "GELIR");
-        List<Transaction> giderler = transactionService.listTransactions(transactions, "GIDER");
+        List<Transaction> gelirler = transactionService.listTransactions(transactions, "GELİR");
+        List<Transaction> giderler = transactionService.listTransactions(transactions, "GİDER");
 
         for (Transaction t : gelirler) totalIncome  += t.getAmount();
         for (Transaction t : giderler) totalExpense += t.getAmount();

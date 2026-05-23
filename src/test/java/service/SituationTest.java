@@ -19,8 +19,8 @@ public class SituationTest {
     @Test
     public void testProfitCalculation() {
         List<Transaction> transactions = new ArrayList<>();
-        Transaction income  = new Transaction("T-001", "GELIR", 1000.0);
-        Transaction expense = new Transaction("T-002", "GIDER", 400.0);
+        Transaction income  = new Transaction("T-001", "GELİR", 1000.0);
+        Transaction expense = new Transaction("T-002", "GİDER", 400.0);
         transactions.add(income);
         transactions.add(expense);
 
@@ -33,8 +33,8 @@ public class SituationTest {
     @Test
     public void testLossCalculation() {
         List<Transaction> transactions = new ArrayList<>();
-        Transaction income  = new Transaction("T-003", "GELIR", 200.0);
-        Transaction expense = new Transaction("T-004", "GIDER", 800.0);
+        Transaction income  = new Transaction("T-003", "GELİR", 200.0);
+        Transaction expense = new Transaction("T-004", "GİDER", 800.0);
         transactions.add(income);
         transactions.add(expense);
 

@@ -16,11 +16,11 @@ public class TransactionTest {
     @Test
     public void testDoluKurucu_alanlarDogruAtanir() {
         Date tarih = new Date();
-        Transaction t = new Transaction("TXN-001", "GELIR", 1500.0,
+        Transaction t = new Transaction("TXN-001", "GELİR", 1500.0,
                 tarih, "Test geliri", null, null, null);
 
         assertEquals("TXN-001", t.getId());
-        assertEquals("GELIR", t.getType());
+        assertEquals("GELİR", t.getType());
         assertEquals(1500.0, t.getAmount());
         assertEquals(tarih, t.getDate());
         assertEquals("Test geliri", t.getDescription());
@@ -29,8 +29,8 @@ public class TransactionTest {
     @Test
     public void testSetType_giderAtanir() {
         Transaction t = new Transaction();
-        t.setType("GIDER");
-        assertEquals("GIDER", t.getType());
+        t.setType("GİDER");
+        assertEquals("GİDER", t.getType());
     }
 
     @Test

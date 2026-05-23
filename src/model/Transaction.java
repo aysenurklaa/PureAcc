@@ -7,7 +7,7 @@ import java.util.Date;
 public class Transaction {
 
     private String id;
-    private String type;          // "GELIR" veya "GIDER"
+    private String type;          // "GELİR" veya "GİDER"
     private double amount;
     private Date date;
     private String description;

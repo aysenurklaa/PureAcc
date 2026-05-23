@@ -26,7 +26,7 @@ public class TransactionServiceTest {
     @Test
     public void testAddIncome_gecerliTutar_islemOlusturulur() {
         Transaction t = service.addIncome("TXN-001", 1000.0, "Satış geliri");
-        assertEquals("GELIR", t.getType());
+        assertEquals("GELİR", t.getType());
         assertEquals(1000.0, t.getAmount());
     }
 
@@ -45,7 +45,7 @@ public class TransactionServiceTest {
     @Test
     public void testAddExpense_gecerliTutar_islemOlusturulur() {
         Transaction t = service.addExpense("TXN-004", 500.0, "Malzeme alımı");
-        assertEquals("GIDER", t.getType());
+        assertEquals("GİDER", t.getType());
         assertEquals(500.0, t.getAmount());
     }
 
@@ -77,10 +77,10 @@ public class TransactionServiceTest {
         islemler.add(service.addIncome("TXN-007", 300.0, "Gelir 1"));
         islemler.add(service.addExpense("TXN-008", 150.0, "Gider 1"));
 
-        List<Transaction> gelirler = service.listTransactions(islemler, "GELIR");
+        List<Transaction> gelirler = service.listTransactions(islemler, "GELİR");
 
         assertEquals(1, gelirler.size());
-        assertEquals("GELIR", gelirler.get(0).getType());
+        assertEquals("GELİR", gelirler.get(0).getType());
     }
 
     @Test

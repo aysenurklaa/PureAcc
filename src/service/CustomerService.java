@@ -42,9 +42,9 @@ public class CustomerService {
             if (c.getCustomerId().equals(customerId)) {
                 double bakiye = 0;
                 for (Transaction t : c.getTransactions()) {
-                    if ("GELIR".equalsIgnoreCase(t.getType())) {
+                    if ("GELİR".equalsIgnoreCase(t.getType())) {
                         bakiye += t.getAmount();
-                    } else if ("GIDER".equalsIgnoreCase(t.getType())) {
+                    } else if ("GİDER".equalsIgnoreCase(t.getType())) {
                         bakiye -= t.getAmount();
                     }
                 }
@@ -61,9 +61,9 @@ public class CustomerService {
                 double toplamGelir = 0;
                 double toplamGider = 0;
                 for (Transaction t : c.getTransactions()) {
-                    if ("GELIR".equalsIgnoreCase(t.getType())) {
+                    if ("GELİR".equalsIgnoreCase(t.getType())) {
                         toplamGelir += t.getAmount();
-                    } else if ("GIDER".equalsIgnoreCase(t.getType())) {
+                    } else if ("GİDER".equalsIgnoreCase(t.getType())) {
                         toplamGider += t.getAmount();
                     }
                 }
