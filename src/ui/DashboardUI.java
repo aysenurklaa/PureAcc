@@ -1069,11 +1069,13 @@ public class DashboardUI extends JFrame {
         tbl.getColumnModel().getColumn(2).setCellRenderer(typeBadgeRenderer());
         tbl.getColumnModel().getColumn(4).setCellRenderer(amountRenderer());
 
-        JPanel tbRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 8));
+        JPanel tbRow = new JPanel(new BorderLayout());
         tbRow.setOpaque(false);
+        tbRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tbRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         JButton csv = outlineButton("CSV Dışa Aktar");
         csv.addActionListener(e -> JOptionPane.showMessageDialog(this, "CSV dışa aktarıldı.", "Başarılı", JOptionPane.INFORMATION_MESSAGE));
-        tbRow.add(csv);
+        tbRow.add(csv, BorderLayout.EAST);
         wrap.add(tbRow);
         wrap.add(scrollOf(tbl));
         body.add(wrap, BorderLayout.CENTER);
