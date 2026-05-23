@@ -942,8 +942,7 @@ public class DashboardUI extends JFrame {
         search.setPreferredSize(new Dimension(300, 34));
         JButton add = pinkButton("+ Yeni Müşteri");
         add.setPreferredSize(new Dimension(130, 34));
-        add.addActionListener(e -> JOptionPane.showMessageDialog(this,
-            "Müşteri ekleme formu açılıyor...", "Yeni Müşteri", JOptionPane.PLAIN_MESSAGE));
+        add.addActionListener(e -> openNewCustomerDialog());
         tb.add(search); tb.add(add);
         body.add(tb, BorderLayout.NORTH);
 
@@ -960,6 +959,109 @@ public class DashboardUI extends JFrame {
         return p;
     }
 
+    private void openNewCustomerDialog() {
+        JDialog dlg = new JDialog(this, "Yeni Müşteri Ekle", true);
+        dlg.setSize(460, 440);
+        dlg.setLocationRelativeTo(this);
+        dlg.setResizable(false);
+
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG);
+
+        // Başlık
+        JPanel hdr = new JPanel(new BorderLayout());
+        hdr.setBackground(CARD);
+        hdr.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COL),
+            BorderFactory.createEmptyBorder(14, 20, 14, 20)));
+        JLabel title = new JLabel("Yeni Müşteri Ekle");
+        title.setFont(new Font("Arial", Font.BOLD, 16));
+        title.setForeground(TEXT);
+        JLabel sub = new JLabel("Müşteri veya tedarikçi bilgilerini girin");
+        sub.setFont(new Font("Arial", Font.PLAIN, 11));
+        sub.setForeground(MUTED);
+        JPanel hdrTxt = new JPanel(new GridLayout(2, 1, 0, 2));
+        hdrTxt.setOpaque(false);
+        hdrTxt.add(title); hdrTxt.add(sub);
+        hdr.add(hdrTxt, BorderLayout.WEST);
+        root.add(hdr, BorderLayout.NORTH);
+
+        // Form alanları
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBackground(BG);
+        form.setBorder(BorderFactory.createEmptyBorder(20, 24, 10, 24));
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.insets = new Insets(0, 0, 12, 0);
+
+        JTextField fName  = styledField("Firma adı veya kişi adı");
+        JTextField fTax   = styledField("10 haneli vergi numarası");
+        JTextField fEmail = styledField("ornek@firma.com");
+        JTextField fPhone = styledField("05XX XXX XX XX");
+        JComboBox<String> fType = new JComboBox<>(new String[]{"Müşteri", "Tedarikçi"});
+        fType.setFont(new Font("Arial", Font.PLAIN, 13));
+        fType.setBackground(CARD);
+
+        String[][] rows = {
+            {"Firma / Ad *", null},
+            {"Vergi Numarası", null},
+            {"E-Posta", null},
+            {"Telefon", null},
+            {"Tür *", null}
+        };
+        JComponent[] fields = {fName, fTax, fEmail, fPhone, fType};
+        String[] labels = {"Firma / Ad *", "Vergi Numarası", "E-Posta", "Telefon", "Tür *"};
+
+        for (int i = 0; i < labels.length; i++) {
+            gc.gridy = i * 2; gc.gridx = 0; gc.weightx = 1.0;
+            JLabel lbl = new JLabel(labels[i]);
+            lbl.setFont(new Font("Arial", Font.BOLD, 10));
+            lbl.setForeground(MUTED);
+            lbl.setBorder(BorderFactory.createEmptyBorder(0, 0, 3, 0));
+            gc.insets = new Insets(0, 0, 2, 0);
+            form.add(lbl, gc);
+            gc.gridy = i * 2 + 1;
+            gc.insets = new Insets(0, 0, 10, 0);
+            form.add(fields[i], gc);
+        }
+
+        JScrollPane sp = new JScrollPane(form);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.setBackground(BG);
+        root.add(sp, BorderLayout.CENTER);
+
+        // Butonlar
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
+        btns.setBackground(CARD);
+        btns.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COL));
+        JButton cancel = new JButton("İptal");
+        cancel.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancel.setForeground(MUTED);
+        cancel.setBackground(CARD);
+        cancel.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1, true));
+        cancel.setFocusPainted(false);
+        cancel.setPreferredSize(new Dimension(80, 34));
+        cancel.addActionListener(e -> dlg.dispose());
+        JButton save = pinkButton("Kaydet");
+        save.setPreferredSize(new Dimension(100, 34));
+        save.addActionListener(e -> {
+            if (fName.getText().trim().isEmpty()) {
+                fName.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(RED, 1, true),
+                    BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+                return;
+            }
+            JOptionPane.showMessageDialog(dlg,
+                "\"" + fName.getText().trim() + "\" başarıyla kaydedildi.",
+                "Kaydedildi", JOptionPane.INFORMATION_MESSAGE);
+            dlg.dispose();
+        });
+        btns.add(cancel); btns.add(save);
+        root.add(btns, BorderLayout.SOUTH);
+
+        dlg.setContentPane(root);
+        dlg.setVisible(true);
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     //  HATIRLATMALAR
