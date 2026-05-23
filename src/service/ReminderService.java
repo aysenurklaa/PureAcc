@@ -24,6 +24,11 @@ public class ReminderService {
         return unpaids;
     }
 
+    // Varsayılan değerlerle hatırlatma gönderir (maxRetries=3, intervalDays=7).
+    public void sendReminder(String customerName, String channel) {
+        sendReminder(customerName, channel, 3, 7);
+    }
+
     // Müşteriye hatırlatma gönderir.
     // channel: "email" veya "sms"
     // maxRetries: gönderilemezse kaç kez tekrar denenecek
