@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.pureacc</groupId>
+    <artifactId>pureacc-db-security</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>PureAcc - Veritabanı ve Güvenlik Modülü</name>
+    <description>
+        PureAcc projesinin veritabanı (SQLite/PostgreSQL) ve güvenlik katmanı.
+        Bu modül: şema yönetimi, bağlantı havuzu, DAO katmanı, parola hash'leme,
+        oturum token yönetimi ve dosya yolu güvenliği içerir.
+    </description>
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <!--
+      Kalıcılık: SQLite (geliştirme) + JDBC. Üretimde PostgreSQL URL'si verilebilir;
+      sql/schema.sql şu an yalnızca SQLite içindir — PG için ayrı migrasyon (Flyway vb.) gerekir.
+      ORM (Hibernate) kullanılmıyor; kasıtlı olarak ince JDBC + DAO katmanı tercih edildi.
+    -->
+    <dependencies>
+        <!-- SQLite JDBC sürücüsü -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.47.1.0</version>
+        </dependency>
+        <!-- PostgreSQL JDBC sürücüsü (üretim ortamı için) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.4</version>
+        </dependency>
+        <!-- HikariCP bağlantı havuzu -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+        <!-- BCrypt parola hash'leme -->
+        <dependency>
+            <groupId>org.mindrot</groupId>
+            <artifactId>jbcrypt</artifactId>
+            <version>0.4</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <sourceDirectory>${project.basedir}/src</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>17</release>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
