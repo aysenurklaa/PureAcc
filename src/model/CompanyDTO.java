@@ -1,4 +1,4 @@
-package dto;
+package model;
 
  // CompanyDTO — Şirket profil bilgilerini katmanlar arasında taşıyan veri nesnesi.
 
